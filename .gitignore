@@ -56,6 +56,8 @@ playwright-report/
 # Supabase
 supabase/.temp/
 supabase/.branches/
+supabase/functions/.env
+supabase/.env
 
 # Claude Code: configuración local, skills y MCPs
 .claude/settings.local.json
@@ -63,3 +65,4 @@ supabase/.branches/
 skills-lock.json
 .mcp.json
 CLAUDE.md
+PLAN.md
