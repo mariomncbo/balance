@@ -15,6 +15,17 @@ El objetivo es no gastar tokens a lo tonto. El modelo de la sesión principal lo
 - Usar subagentes solo cuando la tarea compense que arranquen sin contexto. Las tareas pequeñas se hacen directamente.
 - Ser conciso: no releer ficheros sin necesidad ni repetir contexto.
 
+## MCPs
+
+- **Context7** (configurado en `.mcp.json`): documentación actualizada de librerías. Úsalo antes de escribir código con librerías externas (Supabase, React, Vite, SwiftUI, Netlify...) para no basarte en APIs desfasadas.
+- La API key va en la variable de entorno `CONTEXT7_API_KEY` del shell del usuario. **Nunca** se escribe en ningún fichero del repo, porque el repo es público.
+- **Supabase** (configurado en `.mcp.json`, proyecto `ddwzeemjdvvttnmdmded`): base de datos, migraciones, Edge Functions, logs y documentación. Se autentica con OAuth mediante `/mcp`, sin tokens en el repo. Usarlo junto con las skills `supabase` y `supabase-postgres-best-practices`. Antes de cualquier cambio destructivo en la base de datos (DROP, DELETE, migraciones que borran datos), pedir confirmación al usuario.
+
+- **Netlify** (oficial, remoto, OAuth con `/mcp`): crear y configurar los sitios `balance` y `getbalance`, desplegar y gestionar variables de entorno.
+- **Playwright** (Microsoft): abrir la PWA en un navegador, probar flujos y hacer capturas.
+- **Sin MCP de Xcode** (descartado). `xcode-select` apunta a las CommandLineTools, así que para compilar desde la terminal hay que usar `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild ...`.
+- `CLAUDE.md`, `.mcp.json`, `.claude/skills/` y `skills-lock.json` están en `.gitignore`: estas instrucciones y la configuración de MCPs y skills son locales y no se suben al repo público.
+
 ## Producto
 
 Balance es una app de finanzas personales: ver cuánto tienes, en qué lo gastas y ahorrar para metas. Pilares:

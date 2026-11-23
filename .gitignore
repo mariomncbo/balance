@@ -1,5 +1,8 @@
 # macOS
 .DS_Store
+._*
+.AppleDouble
+.LSOverride
 
 # Xcode
 xcuserdata/
@@ -9,12 +12,38 @@ build/
 *.ipa
 *.dSYM
 *.dSYM.zip
+*.xcresult
+*.xcscmblueprint
+*.xccheckout
+
+# Swift Package Manager
+.build/
+.swiftpm/
 
 # Node / Vite
 node_modules/
 dist/
+dist-ssr/
 .vite/
+*.local
+*.tsbuildinfo
+coverage/
+.eslintcache
 *.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Tests / Playwright
+test-results/
+playwright-report/
+.playwright-mcp/
+
+# Editores
+.idea/
+.vscode/
+*.swp
 
 # Entorno
 .env
@@ -28,5 +57,9 @@ dist/
 supabase/.temp/
 supabase/.branches/
 
-# Claude Code
+# Claude Code: configuración local, skills y MCPs
 .claude/settings.local.json
+.claude/skills/
+skills-lock.json
+.mcp.json
+CLAUDE.md
