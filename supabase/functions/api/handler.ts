@@ -347,6 +347,26 @@ const actions: Record<string, Handler> = {
   },
 
   "meta.categories": async () => CATEGORIES,
+
+  // Sube de una vez lo introducido en el onboarding (antes de tener cuenta estaba solo en el dispositivo).
+  // Solo se permite si el usuario aún no tiene datos, para no duplicar.
+  "onboarding.import": async (p, v, ctx) => {
+    const accountsIn = Array.isArray(p.accounts) ? p.accounts : [];
+    const recurringIn = Array.isArray(p.recurring) ? p.recurring : [];
+    if (accountsIn.length > 20 || recurringIn.length > 30) throw new ApiError(400, "Demasiados elementos");
+    if ((await v.all<Account>("accounts")).length > 0) throw new ApiError(409, "La cuenta ya tiene datos");
+    const accounts = accountsIn.map((a) => parseAccount(a as P, uuidv7()));
+    const recurring = recurringIn.map((r) => {
+      const item = parseRecurring(r as P, uuidv7(), ctx.today);
+      if (item.accountId) throw new ApiError(400, "En el onboarding los fijos no llevan cuenta");
+      item.accountId = accounts[0]?.id ?? null;
+      item.lastPosted = item.startDate < ctx.today ? addDays(ctx.today, -1) : undefined;
+      return item;
+    });
+    await v.insert("accounts", accounts);
+    await v.insert("recurring", recurring);
+    return { accounts: accounts.length, recurring: recurring.length };
+  },
 };
 
 export async function handle(body: unknown, ctx: Ctx): Promise<unknown> {

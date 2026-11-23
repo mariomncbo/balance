@@ -90,6 +90,23 @@ Deno.test("un usuario no ve ni toca los datos de otro", async () => {
   assertEquals((await call(ana, "accounts.list")).accounts.length, 2);
 });
 
+Deno.test("onboarding: importa cuentas y fijos una sola vez", async () => {
+  const eva: Ctx = { userId: "eva", today: "2026-11-23", store, master };
+  const r = await call(eva, "onboarding.import", {
+    accounts: [{ name: "Mi dinero", type: "banco", openingBalance: 1248035 }],
+    recurring: [
+      { kind: "income", amount: 185000, concept: "Nómina", category: "ingresos", day: 1 },
+      { kind: "loan", amount: 64000, concept: "Hipoteca", category: "hogar", day: 5, pending: 9840000, endMonth: "2041-06" },
+    ],
+  });
+  assertEquals(r, { accounts: 1, recurring: 2 });
+  const fixed = await call(eva, "recurring.list");
+  assertEquals(fixed.map((f: { concept: string; nextDate: string }) => [f.concept, f.nextDate]), [["Nómina", "2026-12-01"], ["Hipoteca", "2026-12-05"]]);
+  // No se cobra nada hacia atrás.
+  assertEquals((await call(eva, "home")).balances.total, 1248035);
+  await assertRejects(() => call(eva, "onboarding.import", { accounts: [] }), ApiError, "La cuenta ya tiene datos");
+});
+
 Deno.test("valida la entrada", async () => {
   await assertRejects(() => call(ana, "nada"), ApiError, "Acción desconocida");
   await assertRejects(() => call(ana, "accounts.create", { name: "", type: "banco", openingBalance: 0 }), ApiError);

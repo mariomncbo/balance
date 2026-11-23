@@ -30,7 +30,7 @@ export default {
       return Response.json({ data });
     } catch (e) {
       if (e instanceof ApiError) return Response.json({ error: e.message }, { status: e.status });
-      console.error("api: error interno", e instanceof Error ? e.message : "desconocido");
+      console.error("api: error interno", (e as { message?: string; code?: string })?.code ?? "", (e as { message?: string })?.message ?? String(e));
       return Response.json({ error: "Error interno" }, { status: 500 });
     }
   }),
