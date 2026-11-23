@@ -1,0 +1,32 @@
+# macOS
+.DS_Store
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# Node / Vite
+node_modules/
+dist/
+.vite/
+*.log
+
+# Entorno
+.env
+.env.*
+!.env.example
+
+# Netlify
+.netlify/
+
+# Supabase
+supabase/.temp/
+supabase/.branches/
+
+# Claude Code
+.claude/settings.local.json
