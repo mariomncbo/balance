@@ -88,6 +88,10 @@ Deno.test("un usuario no ve ni toca los datos de otro", async () => {
     "La cuenta no existe",
   );
   assertEquals((await call(ana, "accounts.list")).accounts.length, 2);
+  // Tampoco puede leer un movimiento suelto de otro por su id.
+  const mercadona = (await call(ana, "transactions.list", { month: "2026-11" })).items.find((t: { concept: string }) => t.concept === "Mercadona");
+  assertEquals((await call(ana, "transactions.get", { id: mercadona.id })).concept, "Mercadona");
+  await assertRejects(() => call(luis, "transactions.get", { id: mercadona.id }), ApiError, "No existe");
 });
 
 Deno.test("onboarding: importa cuentas y fijos una sola vez", async () => {

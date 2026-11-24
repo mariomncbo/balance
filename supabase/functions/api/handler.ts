@@ -273,6 +273,12 @@ const actions: Record<string, Handler> = {
     const recurring = await v.all<Recurring>("recurring");
     return { items, summary: monthSummary(txs, recurring, m, ctx.today) };
   },
+  "transactions.get": async (p, v) => {
+    const id = str(p, "id", 40);
+    const t = (await v.all<Transaction>("transactions")).find((x) => x.id === id);
+    if (!t) throw new ApiError(404, "No existe");
+    return t;
+  },
   "transactions.create": async (p, v) => {
     const t = parseTransaction(p, uuidv7(), await v.all<Account>("accounts"));
     await v.insert("transactions", [t]);

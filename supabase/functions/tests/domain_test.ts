@@ -77,6 +77,7 @@ Deno.test("saldos y reparto entre cuentas", () => {
   const b = balances(accounts, [tx("2026-11-01", 185000, "ingresos"), tx("2026-11-02", -110985, "hogar")]);
   assertEquals(b.accounts.map((a) => a.balance), [7574015, 412020, 12000]);
   assertEquals(b.total, 7998035);
+  assertEquals(b.accounts[0].openingBalance, 7500000); // para poder editar el saldo sin contar dos veces los movimientos
 });
 
 Deno.test("resumen del mes: categorías, lo ahorrado, lo pendiente y la comparación", () => {

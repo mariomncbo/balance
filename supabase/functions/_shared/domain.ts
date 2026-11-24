@@ -205,7 +205,7 @@ export function balances(accounts: Account[], txs: Transaction[]) {
     total,
     accounts: accounts.map((a) => {
       const balance = byAccount.get(a.id)!;
-      return { id: a.id, name: a.name, type: a.type, balance, share: total > 0 ? Math.round((balance / total) * 100) : 0 };
+      return { id: a.id, name: a.name, type: a.type, balance, openingBalance: a.openingBalance, share: total > 0 ? Math.round((balance / total) * 100) : 0 };
     }),
   };
 }
