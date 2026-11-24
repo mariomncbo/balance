@@ -25,18 +25,25 @@ struct ShortcutGuideView: View {
             DetailHeader()
             VStack(alignment: .leading, spacing: 6) {
                 Text("Pagos apuntados solos").bH1().accessibilityAddTraits(.isHeader)
-                Text("Cada pago con una tarjeta de Wallet aparecerá en Balance. Son 4 pasos.").bLead()
+                Text("Cada pago con una tarjeta de Wallet aparecerá en Balance. Son 4 pasos; el segundo es una prueba con 1 €.").bLead()
             }
             if status.loading && status.data == nil { BLoadingTiles(rows: 3) }
             else if let e = status.error, status.data == nil { BErrorState(error: e) { app.invalidate() } }
             else {
                 step(1, "Copia tu clave personal") { keyStep }
-                step(2, "Crea el Atajo «Balance»") { shortcutStep }
-                step(3, "Crea la automatización") {
-                    Text("En Atajos: Automatización → Nueva → Transacción. Elige tus tarjetas y marca «Ejecutar inmediatamente».").bSubhead(.textSecondary)
+                step(2, "Prueba con 1 €") { shortcutStep }
+                step(3, "Conéctalo con Wallet") {
+                    VStack(alignment: .leading, spacing: 6) {
+                        bullet("En Atajos: Automatización → + → Transacción. Elige tus tarjetas y marca «Ejecutar inmediatamente».")
+                        bullet("Nueva automatización en blanco → añade la misma acción «Obtener contenido de URL» (puedes copiarla del atajo de prueba).")
+                        bullet("En el cuerpo JSON cambia los valores fijos por la variable «Entrada del atajo» (la transacción) y elige su propiedad:")
+                        bullet("amount → el importe", indent: true)
+                        bullet("merchant → el comercio", indent: true)
+                        bullet("card → la tarjeta o pase", indent: true)
+                    }
                 }
-                step(4, "Elige el Atajo «Balance»") {
-                    Text("Como acción. Tu próximo pago aparecerá en Movimientos con el origen «Atajo».").bSubhead(.textSecondary)
+                step(4, "Paga con Wallet") {
+                    Text("Tu próximo pago aparecerá solo en Movimientos, con el origen «Atajo».").bSubhead(.textSecondary)
                 }
                 if active != nil { optionsTile }
                 if let error { BPill(text: error, style: .expense) }
@@ -100,7 +107,7 @@ struct ShortcutGuideView: View {
     }
 
     @ViewBuilder private var shortcutStep: some View {
-        Text("En la app Atajos, crea un atajo nuevo llamado «Balance» con una sola acción: «Obtener contenido de URL».").bSubhead(.textSecondary)
+        Text("En Atajos, crea un atajo «Balance» con la acción «Obtener contenido de URL» y ejecútalo con ▶. Debe aparecer un gasto de 1 € «Prueba» en Movimientos (bórralo después).").bSubhead(.textSecondary)
         HStack(spacing: 8) {
             Button(copied == "url" ? "Dirección copiada" : "Copiar dirección") { copy(ShortcutKeyStore.endpoint, as: "url") }
                 .buttonStyle(.b(.soft, small: true, block: false))
@@ -114,14 +121,14 @@ struct ShortcutGuideView: View {
         .buttonStyle(.plain)
         if showSteps {
             VStack(alignment: .leading, spacing: 6) {
-                bullet("URL: pega la dirección que has copiado.")
+                bullet("Toca «URL» y pega la dirección. Toca › para ver más opciones.")
                 bullet("Método: POST.")
-                bullet("Cabeceras: añade una llamada X-Balance-Key y pega tu clave como valor.")
-                bullet("Cuerpo de la solicitud: JSON, con tres campos de texto:")
-                bullet("amount → Entrada del atajo › Importe", indent: true)
-                bullet("merchant → Entrada del atajo › Comercio", indent: true)
-                bullet("card → Entrada del atajo › Tarjeta o pase", indent: true)
-                bullet("Opcional: añade «Mostrar notificación» con el resultado para ver «Apuntado: …» tras cada pago.")
+                bullet("Cabeceras → Añadir nueva cabecera. Clave: X-Balance-Key. Texto: tu clave (botón Copiar del paso 1).")
+                bullet("Cuerpo de la solicitud: JSON, con dos campos de texto:")
+                bullet("amount = 1,00", indent: true)
+                bullet("merchant = Prueba", indent: true)
+                bullet("Añade «Mostrar notificación» con el «Contenido de la URL» y pulsa ▶. Debe decir «Apuntado: −1,00 € · Prueba».")
+                bullet("Si dice «Clave del Atajo no válida», vuelve a copiar y pegar la clave sin espacios.")
             }
             .padding(12)
             .background(Color.bg, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
