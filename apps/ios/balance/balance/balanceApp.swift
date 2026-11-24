@@ -1,17 +1,18 @@
-//
-//  balanceApp.swift
-//  balance
-//
-//  Created by Mario Mancebo Montiel on 23/11/2026.
-//
-
 import SwiftUI
 
 @main
-struct balanceApp: App {
+struct BalanceApp: App {
+    @State private var app = AppModel()
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
+                .environment(app)
+                .preferredColorScheme(app.theme.scheme)
+                .tint(Color.accent)
+                .task { await app.start() }
+                .onChange(of: scenePhase) { _, phase in app.scenePhaseChanged(phase) }
         }
     }
 }

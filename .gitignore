@@ -66,3 +66,6 @@ skills-lock.json
 .mcp.json
 CLAUDE.md
 PLAN.md
+
+# iOS: configuración generada desde .env (URL y clave pública de Supabase)
+apps/ios/balance/balance/Core/Config.swift
