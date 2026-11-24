@@ -209,3 +209,18 @@ struct GoalPreview: Codable, Hashable {
     let deadline: String
     let monthly: Int
 }
+
+/// Estado de la clave del Atajo (`shortcut.status`). La clave nunca viene aquí: solo sus 4 últimos caracteres.
+struct ShortcutStatus: Codable, Hashable {
+    let active: Bool
+    let hint: String?
+    let createdAt: String?
+    let lastUsedAt: String?
+    let accountId: String?
+}
+
+/// Clave recién creada (`shortcut.create`). Es la única vez que el servidor la devuelve.
+struct ShortcutCreated: Codable, Hashable {
+    let token: String
+    let hint: String
+}

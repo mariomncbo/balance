@@ -5,10 +5,12 @@ import {
   decryptPayload,
   encryptPayload,
   rowAad,
+  sha256Hex,
   type TableName,
   unwrapUserKey,
   uuidv7,
 } from "../_shared/crypto.ts";
+import { generateToken } from "../_shared/shortcut.ts";
 import {
   type Account,
   ACCOUNT_TYPES,
@@ -46,6 +48,19 @@ export interface Store {
   insert(table: DataTable, userId: string, rows: Row[]): Promise<void>;
   update(table: DataTable, userId: string, row: Row): Promise<boolean>;
   remove(table: DataTable, userId: string, id: string): Promise<boolean>;
+  // Atajo de iPhone (tabla shortcut_tokens: solo el hash de la clave, nunca la clave)
+  getShortcut(userId: string): Promise<ShortcutInfo | null>;
+  /** Crea o sustituye la clave del usuario (la anterior deja de funcionar al momento). */
+  putShortcut(userId: string, tokenHash: string, hint: string): Promise<void>;
+  deleteShortcut(userId: string): Promise<boolean>;
+  setShortcutAccount(userId: string, accountId: string | null): Promise<boolean>;
+}
+
+export interface ShortcutInfo {
+  hint: string | null;
+  createdAt: string;
+  lastUsedAt: string | null;
+  accountId: string | null;
 }
 
 export class ApiError extends Error {
@@ -63,7 +78,7 @@ export interface Ctx {
 
 // ───────────────────────── Bóveda: cifrar y descifrar filas ─────────────────────────
 
-class Vault {
+export class Vault {
   private dek?: CryptoKey;
   constructor(private ctx: Ctx) {}
 
@@ -353,6 +368,29 @@ const actions: Record<string, Handler> = {
   },
 
   "meta.categories": async () => CATEGORIES,
+
+  // ── Atajo de iPhone ──
+  "shortcut.status": async (_p, _v, ctx) => {
+    const s = await ctx.store.getShortcut(ctx.userId);
+    return s ? { active: true, ...s } : { active: false, hint: null, createdAt: null, lastUsedAt: null, accountId: null };
+  },
+  // Genera una clave nueva. Se devuelve UNA vez; en la base de datos solo queda su hash.
+  "shortcut.create": async (_p, _v, ctx) => {
+    const token = generateToken();
+    const hint = token.slice(-4);
+    await ctx.store.putShortcut(ctx.userId, await sha256Hex(token), hint);
+    return { token, hint };
+  },
+  "shortcut.revoke": async (_p, _v, ctx) => {
+    await ctx.store.deleteShortcut(ctx.userId);
+    return { ok: true };
+  },
+  "shortcut.account": async (p, v, ctx) => {
+    const accountId = p.accountId === null || p.accountId === undefined ? null : str(p, "accountId", 40);
+    if (accountId && !(await v.all<Account>("accounts")).some((a) => a.id === accountId)) throw new ApiError(400, "La cuenta no existe");
+    if (!(await ctx.store.setShortcutAccount(ctx.userId, accountId))) throw new ApiError(404, "Primero crea la clave del Atajo");
+    return { ok: true };
+  },
 
   // Sube de una vez lo introducido en el onboarding (antes de tener cuenta estaba solo en el dispositivo).
   // Solo se permite si el usuario aún no tiene datos, para no duplicar.

@@ -433,3 +433,6 @@ verify_jwt = true
 
 [functions.auth]
 verify_jwt = false
+
+[functions.shortcut]
+verify_jwt = false

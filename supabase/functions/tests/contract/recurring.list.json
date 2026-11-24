@@ -1,0 +1,97 @@
+{
+  "data": [
+    {
+      "kind": "income",
+      "amount": 185000,
+      "concept": "Nómina",
+      "category": "ingresos",
+      "accountId": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+      "day": 1,
+      "frequency": {
+        "unit": "month",
+        "every": 1
+      },
+      "startDate": "2026-10-01",
+      "lastPosted": "2026-11-01",
+      "id": "01a20dd8-8e7f-79d7-9d5f-bcb19ff9d18c",
+      "nextDate": "2026-12-01",
+      "progress": null
+    },
+    {
+      "kind": "expense",
+      "amount": 1299,
+      "concept": "Netflix",
+      "category": "suscripciones",
+      "accountId": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+      "day": 25,
+      "frequency": {
+        "unit": "month",
+        "every": 1
+      },
+      "startDate": "2026-10-01",
+      "lastPosted": "2026-10-25",
+      "id": "01a20dd8-8e80-7678-b09b-71004c5a9f7d",
+      "nextDate": "2026-11-25",
+      "progress": null
+    },
+    {
+      "kind": "expense",
+      "amount": 9900,
+      "concept": "Seguro",
+      "category": "hogar",
+      "accountId": null,
+      "day": 10,
+      "frequency": {
+        "unit": "year",
+        "every": 1
+      },
+      "startDate": "2026-10-01",
+      "lastPosted": "2026-10-10",
+      "id": "01a20dd8-8e80-7d67-8e20-bb24ef623224",
+      "nextDate": "2027-10-10",
+      "progress": null
+    },
+    {
+      "kind": "loan",
+      "amount": 64000,
+      "concept": "Hipoteca",
+      "category": "hogar",
+      "accountId": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+      "day": 5,
+      "frequency": {
+        "unit": "month",
+        "every": 1
+      },
+      "startDate": "2026-10-01",
+      "loan": {
+        "pending": 9712000,
+        "endMonth": "2041-06",
+        "principal": 15870968
+      },
+      "lastPosted": "2026-11-05",
+      "id": "01a20dd8-8e80-7d05-b33e-1e2efc37e3c4",
+      "nextDate": "2026-12-05",
+      "progress": 39
+    },
+    {
+      "kind": "loan",
+      "amount": 15000,
+      "concept": "Coche",
+      "category": "transporte",
+      "accountId": null,
+      "day": 15,
+      "frequency": {
+        "unit": "month",
+        "every": 1
+      },
+      "startDate": "2026-10-01",
+      "loan": {
+        "pending": 270000
+      },
+      "lastPosted": "2026-11-15",
+      "id": "01a20dd8-8e80-727d-9c7a-ccdd011d071b",
+      "nextDate": "2026-12-15",
+      "progress": null
+    }
+  ]
+}

@@ -28,6 +28,7 @@ final class Router {
         case "movement": path = [.movement("t1")]
         case "account": path = [.account("a1")]
         case "chat": path = [.chat]
+        case "shortcut": path = [.shortcut]
         default: break
         }
     }
@@ -68,7 +69,7 @@ struct MainView: View {
                 case .report: ReportView()
                 case .settings: SettingsView()
                 case .chat: ComingSoonView(title: "Asistente", symbol: "sparkles", text: "Pronto podrás preguntarle por tus gastos y tus metas.")
-                case .shortcut: ComingSoonView(title: "Registro automático", symbol: "bolt", text: "Pronto podrás configurar el Atajo del iPhone para que tus pagos se apunten solos.")
+                case .shortcut: ShortcutGuideView()
                 }
             }
         }

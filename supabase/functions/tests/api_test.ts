@@ -1,40 +1,7 @@
 import { assert, assertEquals, assertRejects } from "jsr:@std/assert@1.0.13";
 import { importMasterKey } from "../_shared/crypto.ts";
-import { ApiError, type Ctx, type DataTable, handle, type Row, type Store } from "../api/handler.ts";
-
-class MemoryStore implements Store {
-  keys = new Map<string, string>();
-  tables = new Map<string, (Row & { user_id: string })[]>();
-  private t(table: DataTable) {
-    if (!this.tables.has(table)) this.tables.set(table, []);
-    return this.tables.get(table)!;
-  }
-  getWrappedKey(u: string) {
-    return Promise.resolve(this.keys.get(u) ?? null);
-  }
-  putWrappedKeyIfMissing(u: string, w: string) {
-    if (!this.keys.has(u)) this.keys.set(u, w);
-    return Promise.resolve(this.keys.get(u)!);
-  }
-  list(table: DataTable, u: string) {
-    return Promise.resolve(this.t(table).filter((r) => r.user_id === u).map(({ user_id: _, ...r }) => r));
-  }
-  insert(table: DataTable, u: string, rows: Row[]) {
-    this.t(table).push(...rows.map((r) => ({ ...r, user_id: u })));
-    return Promise.resolve();
-  }
-  update(table: DataTable, u: string, row: Row) {
-    const r = this.t(table).find((x) => x.user_id === u && x.id === row.id);
-    if (r) Object.assign(r, row);
-    return Promise.resolve(Boolean(r));
-  }
-  remove(table: DataTable, u: string, id: string) {
-    const list = this.t(table);
-    const i = list.findIndex((x) => x.user_id === u && x.id === id);
-    if (i >= 0) list.splice(i, 1);
-    return Promise.resolve(i >= 0);
-  }
-}
+import { ApiError, type Ctx, handle } from "../api/handler.ts";
+import { MemoryStore } from "./memory_store.ts";
 
 const master = await importMasterKey(btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))));
 const store = new MemoryStore();

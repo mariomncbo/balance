@@ -1,0 +1,158 @@
+{
+  "data": {
+    "today": "2026-11-24",
+    "balances": {
+      "total": 7732595,
+      "accounts": [
+        {
+          "id": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+          "name": "BBVA",
+          "type": "banco",
+          "balance": 7720595,
+          "openingBalance": 7500000,
+          "share": 100
+        },
+        {
+          "id": "01a20dd8-8e7e-7a91-9cd3-43ebca38c956",
+          "name": "Efectivo",
+          "type": "efectivo",
+          "balance": 12000,
+          "openingBalance": 12000,
+          "share": 0
+        }
+      ]
+    },
+    "month": {
+      "month": "2026-11",
+      "income": 188000,
+      "expense": 89390,
+      "saved": 98610,
+      "savedShare": 52,
+      "pending": 1299,
+      "byCategory": [
+        {
+          "category": "hogar",
+          "label": "Hogar",
+          "amount": 64000,
+          "share": 72
+        },
+        {
+          "category": "transporte",
+          "label": "Transporte",
+          "amount": 20500,
+          "share": 23
+        },
+        {
+          "category": "comida",
+          "label": "Comida",
+          "amount": 4890,
+          "share": 5
+        }
+      ],
+      "previousExpense": 99915,
+      "vsPrevious": 10525
+    },
+    "lastDays": {
+      "days": [
+        {
+          "date": "2026-11-18",
+          "expense": 0
+        },
+        {
+          "date": "2026-11-19",
+          "expense": 0
+        },
+        {
+          "date": "2026-11-20",
+          "expense": 5500
+        },
+        {
+          "date": "2026-11-21",
+          "expense": 0
+        },
+        {
+          "date": "2026-11-22",
+          "expense": 0
+        },
+        {
+          "date": "2026-11-23",
+          "expense": 0
+        },
+        {
+          "date": "2026-11-24",
+          "expense": 4890
+        }
+      ],
+      "total": 10390
+    },
+    "nextPayment": {
+      "id": "01a20dd8-8e80-7678-b09b-71004c5a9f7d",
+      "concept": "Netflix",
+      "amount": 1299,
+      "date": "2026-11-25"
+    },
+    "topGoal": {
+      "id": "01a20dd8-8e80-72cc-af23-684e49a95fe0",
+      "name": "PS5",
+      "target": 55000,
+      "saved": 32000,
+      "remaining": 23000,
+      "months": 3,
+      "monthly": 7700,
+      "deadline": "2027-02",
+      "progress": 58,
+      "behind": false,
+      "done": false
+    },
+    "latest": [
+      {
+        "accountId": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+        "amount": -4890,
+        "concept": "Mercadona",
+        "category": "comida",
+        "date": "2026-11-24",
+        "source": "atajo",
+        "note": "Compra semanal",
+        "id": "01a20dd8-8e7e-7ab1-b914-382843b53f74"
+      },
+      {
+        "accountId": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+        "amount": -5500,
+        "concept": "Gasolina",
+        "category": "transporte",
+        "date": "2026-11-20",
+        "source": "manual",
+        "id": "01a20dd8-8e7f-7c94-9338-bd47ddd707c4"
+      },
+      {
+        "accountId": null,
+        "amount": -15000,
+        "concept": "Coche",
+        "category": "transporte",
+        "date": "2026-11-15",
+        "source": "fijo",
+        "recurringId": "01a20dd8-8e80-727d-9c7a-ccdd011d071b",
+        "id": "01a20dd8-8e82-7808-bbf2-f449e79d5da0"
+      },
+      {
+        "accountId": null,
+        "amount": 3000,
+        "concept": "Bizum",
+        "category": "otros",
+        "date": "2026-11-10",
+        "source": "manual",
+        "id": "01a20dd8-8e7f-7254-96b3-6e3ea8136e37"
+      },
+      {
+        "accountId": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+        "amount": -64000,
+        "concept": "Hipoteca",
+        "category": "hogar",
+        "date": "2026-11-05",
+        "source": "fijo",
+        "recurringId": "01a20dd8-8e80-7d05-b33e-1e2efc37e3c4",
+        "id": "01a20dd8-8e82-7fb7-bf88-629d27cef113"
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "data": {
+    "items": [],
+    "summary": {
+      "month": "2026-11",
+      "income": 0,
+      "expense": 0,
+      "saved": 0,
+      "savedShare": 0,
+      "pending": 0,
+      "byCategory": [],
+      "previousExpense": 0,
+      "vsPrevious": null
+    }
+  }
+}

@@ -1,6 +1,6 @@
 // Store sobre Supabase. Usa el cliente de administración (se salta RLS), así que
 // TODAS las consultas filtran por user_id: es la única barrera entre usuarios.
-import type { DataTable, Row, Store } from "./handler.ts";
+import type { DataTable, Row, ShortcutInfo, Store } from "./handler.ts";
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -50,6 +50,33 @@ export class SupabaseStore implements Store {
 
   async remove(table: DataTable, userId: string, id: string): Promise<boolean> {
     const { data, error } = await this.db.from(table).delete().eq("user_id", userId).eq("id", id).select("id");
+    fail(error);
+    return (data?.length ?? 0) > 0;
+  }
+
+  async getShortcut(userId: string): Promise<ShortcutInfo | null> {
+    const { data, error } = await this.db.from("shortcut_tokens").select("token_hint, created_at, last_used_at, account_id").eq("user_id", userId).maybeSingle();
+    fail(error);
+    return data ? { hint: data.token_hint, createdAt: data.created_at, lastUsedAt: data.last_used_at, accountId: data.account_id } : null;
+  }
+
+  async putShortcut(userId: string, tokenHash: string, hint: string): Promise<void> {
+    // Mantiene la cuenta elegida, pero reinicia el uso: es otra clave.
+    const { error } = await this.db.from("shortcut_tokens").upsert(
+      { user_id: userId, token_hash: tokenHash, token_hint: hint, created_at: new Date().toISOString(), last_used_at: null, window_start: new Date().toISOString(), window_count: 0, last_fingerprint: null, last_fingerprint_at: null },
+      { onConflict: "user_id" },
+    );
+    fail(error);
+  }
+
+  async deleteShortcut(userId: string): Promise<boolean> {
+    const { data, error } = await this.db.from("shortcut_tokens").delete().eq("user_id", userId).select("user_id");
+    fail(error);
+    return (data?.length ?? 0) > 0;
+  }
+
+  async setShortcutAccount(userId: string, accountId: string | null): Promise<boolean> {
+    const { data, error } = await this.db.from("shortcut_tokens").update({ account_id: accountId }).eq("user_id", userId).select("user_id");
     fail(error);
     return (data?.length ?? 0) > 0;
   }

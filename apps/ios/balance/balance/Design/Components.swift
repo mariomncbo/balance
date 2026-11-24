@@ -100,7 +100,7 @@ struct BGrid<Content: View>: View {
 
 // MARK: - Botones
 
-enum BButtonKind { case primary, secondary, destructive, link, dangerLink, dangerSecondary }
+enum BButtonKind { case primary, secondary, soft, destructive, link, dangerLink, dangerSecondary }
 
 struct BButtonStyle: ButtonStyle {
     var kind: BButtonKind = .primary
@@ -113,17 +113,19 @@ struct BButtonStyle: ButtonStyle {
         let fg: Color = switch kind {
         case .primary, .destructive: .onAccent
         case .secondary: .text
-        case .link: .accentText
+        case .soft, .link: .accentText
         case .dangerLink, .dangerSecondary: .expense
         }
         let bg: Color = switch kind {
         case .primary: configuration.isPressed ? .accentHover : .accent
         case .secondary: configuration.isPressed ? .surfaceHover : .surface
+        case .soft: .accentSubtle
         case .destructive: .expenseSolid
         case .link, .dangerLink: .clear
         case .dangerSecondary: configuration.isPressed ? .surfaceHover : .surface
         }
         configuration.label
+            .lineLimit(1)
             .font(.system(size: small ? 15 : 17, weight: isLink ? .semibold : .bold))
             .foregroundStyle(fg)
             .frame(maxWidth: block && !isLink ? .infinity : nil, minHeight: isLink ? 44 : (small ? 40 : 54))

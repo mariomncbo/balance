@@ -1,0 +1,48 @@
+{
+  "data": {
+    "goals": [
+      {
+        "id": "01a20dd8-8e80-7885-abcf-66e68283b847",
+        "name": "Viaje a Japón",
+        "target": 300000,
+        "saved": 90000,
+        "remaining": 210000,
+        "months": 1,
+        "monthly": 210000,
+        "deadline": "2026-12",
+        "progress": 30,
+        "behind": true,
+        "done": false
+      },
+      {
+        "id": "01a20dd8-8e80-72cc-af23-684e49a95fe0",
+        "name": "PS5",
+        "target": 55000,
+        "saved": 32000,
+        "remaining": 23000,
+        "months": 3,
+        "monthly": 7700,
+        "deadline": "2027-02",
+        "progress": 58,
+        "behind": false,
+        "done": false
+      },
+      {
+        "id": "01a20dd8-8e80-7a2b-9ec0-9996094bf9cc",
+        "name": "Móvil",
+        "target": 30000,
+        "saved": 30000,
+        "remaining": 0,
+        "months": 2,
+        "monthly": 0,
+        "deadline": "2027-01",
+        "progress": 100,
+        "behind": false,
+        "done": true
+      }
+    ],
+    "monthlyTotal": 217700,
+    "saved": 152000,
+    "target": 385000
+  }
+}

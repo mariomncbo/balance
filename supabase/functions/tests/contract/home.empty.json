@@ -1,0 +1,56 @@
+{
+  "data": {
+    "today": "2026-11-24",
+    "balances": {
+      "total": 0,
+      "accounts": []
+    },
+    "month": {
+      "month": "2026-11",
+      "income": 0,
+      "expense": 0,
+      "saved": 0,
+      "savedShare": 0,
+      "pending": 0,
+      "byCategory": [],
+      "previousExpense": 0,
+      "vsPrevious": null
+    },
+    "lastDays": {
+      "days": [
+        {
+          "date": "2026-11-18",
+          "expense": 0
+        },
+        {
+          "date": "2026-11-19",
+          "expense": 0
+        },
+        {
+          "date": "2026-11-20",
+          "expense": 0
+        },
+        {
+          "date": "2026-11-21",
+          "expense": 0
+        },
+        {
+          "date": "2026-11-22",
+          "expense": 0
+        },
+        {
+          "date": "2026-11-23",
+          "expense": 0
+        },
+        {
+          "date": "2026-11-24",
+          "expense": 0
+        }
+      ],
+      "total": 0
+    },
+    "nextPayment": null,
+    "topGoal": null,
+    "latest": []
+  }
+}

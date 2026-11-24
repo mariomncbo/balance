@@ -46,6 +46,10 @@ enum Fixtures {
             let t = params["target"] as? Int ?? 0, s = params["saved"] as? Int ?? 0, m = max(1, params["months"] as? Int ?? 1)
             let monthly = Int((Double(max(0, t - s)) / Double(m) / 100).rounded(.up)) * 100
             body = #"{"deadline":"\#(Dates.shiftMonth("2026-11", m))","monthly":\#(monthly)}"#
+        case "shortcut.status":
+            body = empty ? #"{"active":false,"hint":null,"createdAt":null,"lastUsedAt":null,"accountId":null}"#
+                : #"{"active":true,"hint":"3f9a","createdAt":"2026-11-20T10:00:00.000Z","lastUsedAt":"2026-11-24T09:12:00.000Z","accountId":null}"#
+        case "shortcut.create": body = #"{"token":"bal_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3f9a","hint":"3f9a"}"#
         case "report.month": body = #"{"summary":\#(summary),"goals":{"goals":[\#(goal)],"monthlyTotal":7700,"saved":32000,"target":55000}}"#
         default: body = "{}"
         }
