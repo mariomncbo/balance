@@ -55,17 +55,24 @@ struct GoalSheet: View {
         .task(id: "\(targetCents ?? -1)-\(savedCents)-\(durationText)-\(unit.rawValue)") { await refreshPreview() }
     }
 
-    private var planTile: some View {
+    /// Mientras falten datos, una pista en texto normal; con el cálculo hecho, la ficha azul.
+    @ViewBuilder private var planTile: some View {
+        if (targetCents ?? 0) <= 0 {
+            Text("Escribe cuánto cuesta y te diremos cuánto apartar al mes.").bSub().padding(.horizontal, 4)
+        } else if duration == nil {
+            Text("Escribe en cuánto tiempo la quieres y te diremos cuánto apartar.").bSub().padding(.horizontal, 4)
+        } else {
+            planResult
+        }
+    }
+
+    private var planResult: some View {
         let t = targetCents ?? 0
         let missing = max(0, t - savedCents)
         return BTile(style: .accent, padding: 18, spacing: 4) {
-            if t <= 0 {
-                Text("Escribe cuánto cuesta y te diremos cuánto apartar al mes.").font(.system(size: 15, weight: .semibold))
-            } else if missing == 0 {
+            if missing == 0 {
                 Text("¡Ya la tienes!").bBig(28, color: .onAccent)
                 Text("Con lo que llevas ahorrado, ya cubres esta meta.").font(.system(size: 14, weight: .semibold))
-            } else if duration == nil {
-                Text("Escribe en cuánto tiempo la quieres y te diremos cuánto apartar.").font(.system(size: 15, weight: .semibold))
             } else if let p = preview {
                 Text("Te faltan \(Money.format(missing, round: missing % 100 == 0)). Aparta").bEyebrow(.onAccent).opacity(0.85)
                 if p.short == true {
