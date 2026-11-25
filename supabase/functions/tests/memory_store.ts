@@ -19,8 +19,10 @@ export class MemoryStore implements Store {
   list(table: DataTable, u: string) {
     return Promise.resolve(this.t(table).filter((r) => r.user_id === u).map(({ user_id: _, ...r }) => r));
   }
-  insert(table: DataTable, u: string, rows: Row[]) {
-    this.t(table).push(...rows.map((r) => ({ ...r, user_id: u })));
+  insert(table: DataTable, u: string, rows: Row[], opts?: { ignoreDuplicates?: boolean }) {
+    const list = this.t(table);
+    const fresh = opts?.ignoreDuplicates ? rows.filter((r) => !list.some((x) => x.id === r.id)) : rows;
+    list.push(...fresh.map((r) => ({ ...r, user_id: u })));
     return Promise.resolve();
   }
   update(table: DataTable, u: string, row: Row) {

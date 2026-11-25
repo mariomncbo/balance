@@ -92,8 +92,11 @@ struct Transaction: Codable, Identifiable, Hashable {
     let source: Source
     let note: String?
     let recurringId: String?
+    /// Mitad de una transferencia entre cuentas (aportación a una meta). No es gasto ni ingreso.
+    let transfer: TransferInfo?
 
     var isIncome: Bool { amount > 0 }
+    var isTransfer: Bool { transfer != nil }
 }
 
 struct CategoryShare: Codable, Identifiable, Hashable {
@@ -116,6 +119,19 @@ struct MonthSummary: Codable, Hashable {
     let vsPrevious: Int?
 }
 
+struct TransferInfo: Codable, Hashable {
+    let id: String
+    let goalId: String?
+    let contributionId: String?
+}
+
+struct Contribution: Codable, Identifiable, Hashable {
+    let id: String
+    let date: String
+    let amount: Int
+    let transferId: String?
+}
+
 struct GoalPlan: Codable, Identifiable, Hashable {
     let id: String
     let name: String
@@ -128,6 +144,10 @@ struct GoalPlan: Codable, Identifiable, Hashable {
     let progress: Int
     let behind: Bool
     let done: Bool
+    /// Cuenta donde se guarda el dinero de la meta (destino por defecto de las aportaciones).
+    let accountId: String?
+    /// De la más reciente a la más antigua.
+    let contributions: [Contribution]?
 }
 
 struct Goals: Codable, Hashable {

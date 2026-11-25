@@ -111,3 +111,16 @@ Deno.test("metas: cuánto apartar y si vas con retraso (cifras del diseño)", ()
   assertEquals([japon.monthly, japon.progress, japon.behind], [52500, 30, true]);
   assertEquals(planNewGoal(55000, 0, 6, TODAY), { deadline: "2027-05", monthly: 9200 });
 });
+
+Deno.test("las transferencias entre cuentas no cuentan como gasto ni ingreso, pero sí mueven saldos", () => {
+  const transfer = (amount: number, accountId: string): Transaction => ({ ...tx(TODAY, amount, "otros", "Aportación a PS5", accountId), transfer: { id: "tr1", goalId: "ps5" } });
+  const txs = [tx(TODAY, -4890, "comida", "Mercadona"), transfer(-5000, "bbva"), transfer(5000, "ahorro"), tx("2026-11-01", 185000, "ingresos", "Nómina")];
+  const s = monthSummary(txs, [], "2026-11", TODAY);
+  assertEquals([s.income, s.expense], [185000, 4890]);
+  assertEquals(s.byCategory.map((c) => c.category), ["comida"]);
+  assertEquals(lastDays(txs, TODAY).total, 4890);
+  const accounts: Account[] = [{ id: "bbva", name: "BBVA", type: "banco", openingBalance: 10000 }, { id: "ahorro", name: "Ahorro", type: "ahorro", openingBalance: 0 }];
+  const b = balances(accounts, txs);
+  assertEquals(b.accounts.map((a) => a.balance), [10000 - 4890 - 5000 + 185000, 5000]);
+  assertEquals(b.total, 10000 - 4890 + 185000, "mover dinero entre cuentas no cambia el total");
+});

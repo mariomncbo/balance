@@ -5,18 +5,18 @@
       "total": 7732595,
       "accounts": [
         {
-          "id": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+          "id": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
           "name": "BBVA",
           "type": "banco",
-          "balance": 7720595,
+          "balance": 7718095,
           "openingBalance": 7500000,
           "share": 100
         },
         {
-          "id": "01a20dd8-8e7e-7a91-9cd3-43ebca38c956",
+          "id": "01a2127b-bd19-7869-bf34-94dafbc6b2f1",
           "name": "Efectivo",
           "type": "efectivo",
-          "balance": 12000,
+          "balance": 14500,
           "openingBalance": 12000,
           "share": 0
         }
@@ -86,43 +86,85 @@
       "total": 10390
     },
     "nextPayment": {
-      "id": "01a20dd8-8e80-7678-b09b-71004c5a9f7d",
+      "id": "01a2127b-bd1a-780e-8251-7681ddfa6467",
       "concept": "Netflix",
       "amount": 1299,
       "date": "2026-11-25"
     },
     "topGoal": {
-      "id": "01a20dd8-8e80-72cc-af23-684e49a95fe0",
+      "id": "01a2127b-bd1b-7ade-9d26-ddd5505e5b68",
       "name": "PS5",
       "target": 55000,
-      "saved": 32000,
-      "remaining": 23000,
+      "saved": 35500,
+      "remaining": 19500,
       "months": 3,
-      "monthly": 7700,
+      "monthly": 6500,
       "deadline": "2027-02",
-      "progress": 58,
+      "progress": 65,
       "behind": false,
-      "done": false
+      "done": false,
+      "accountId": "01a2127b-bd19-7869-bf34-94dafbc6b2f1",
+      "contributions": [
+        {
+          "id": "01a2127b-bd1b-7750-a19b-e2da808323c2",
+          "date": "2026-11-24",
+          "amount": 1000
+        },
+        {
+          "id": "01a2127b-bd1b-771f-b29c-140989ce58f0",
+          "date": "2026-11-24",
+          "amount": 2500,
+          "transferId": "01a2127b-bd1b-7ae7-913c-791209ec086e"
+        }
+      ]
     },
     "latest": [
       {
-        "accountId": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+        "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
+        "amount": -2500,
+        "concept": "Aportación a PS5",
+        "category": "otros",
+        "date": "2026-11-24",
+        "source": "manual",
+        "transfer": {
+          "id": "01a2127b-bd1b-7ae7-913c-791209ec086e",
+          "goalId": "01a2127b-bd1b-7ade-9d26-ddd5505e5b68",
+          "contributionId": "01a2127b-bd1b-771f-b29c-140989ce58f0"
+        },
+        "id": "01a2127b-bd1b-72b6-bd1f-38cfce8c0897"
+      },
+      {
+        "accountId": "01a2127b-bd19-7869-bf34-94dafbc6b2f1",
+        "amount": 2500,
+        "concept": "Aportación a PS5",
+        "category": "otros",
+        "date": "2026-11-24",
+        "source": "manual",
+        "transfer": {
+          "id": "01a2127b-bd1b-7ae7-913c-791209ec086e",
+          "goalId": "01a2127b-bd1b-7ade-9d26-ddd5505e5b68",
+          "contributionId": "01a2127b-bd1b-771f-b29c-140989ce58f0"
+        },
+        "id": "01a2127b-bd1b-7119-92bf-a2b3dfab66e0"
+      },
+      {
+        "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
         "amount": -4890,
         "concept": "Mercadona",
         "category": "comida",
         "date": "2026-11-24",
         "source": "atajo",
         "note": "Compra semanal",
-        "id": "01a20dd8-8e7e-7ab1-b914-382843b53f74"
+        "id": "01a2127b-bd19-7a9c-846d-03e746941d96"
       },
       {
-        "accountId": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+        "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
         "amount": -5500,
         "concept": "Gasolina",
         "category": "transporte",
         "date": "2026-11-20",
         "source": "manual",
-        "id": "01a20dd8-8e7f-7c94-9338-bd47ddd707c4"
+        "id": "01a2127b-bd19-7ea8-bd9e-5a0c7af7d597"
       },
       {
         "accountId": null,
@@ -131,27 +173,8 @@
         "category": "transporte",
         "date": "2026-11-15",
         "source": "fijo",
-        "recurringId": "01a20dd8-8e80-727d-9c7a-ccdd011d071b",
-        "id": "01a20dd8-8e82-7808-bbf2-f449e79d5da0"
-      },
-      {
-        "accountId": null,
-        "amount": 3000,
-        "concept": "Bizum",
-        "category": "otros",
-        "date": "2026-11-10",
-        "source": "manual",
-        "id": "01a20dd8-8e7f-7254-96b3-6e3ea8136e37"
-      },
-      {
-        "accountId": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
-        "amount": -64000,
-        "concept": "Hipoteca",
-        "category": "hogar",
-        "date": "2026-11-05",
-        "source": "fijo",
-        "recurringId": "01a20dd8-8e80-7d05-b33e-1e2efc37e3c4",
-        "id": "01a20dd8-8e82-7fb7-bf88-629d27cef113"
+        "recurringId": "01a2127b-bd1b-79b8-a5a5-10475a8faebd",
+        "id": "01a2127b-bd1d-7029-9332-30f506b4d05a"
       }
     ]
   }

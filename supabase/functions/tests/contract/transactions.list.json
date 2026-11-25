@@ -2,23 +2,51 @@
   "data": {
     "items": [
       {
-        "accountId": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+        "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
+        "amount": -2500,
+        "concept": "Aportación a PS5",
+        "category": "otros",
+        "date": "2026-11-24",
+        "source": "manual",
+        "transfer": {
+          "id": "01a2127b-bd1b-7ae7-913c-791209ec086e",
+          "goalId": "01a2127b-bd1b-7ade-9d26-ddd5505e5b68",
+          "contributionId": "01a2127b-bd1b-771f-b29c-140989ce58f0"
+        },
+        "id": "01a2127b-bd1b-72b6-bd1f-38cfce8c0897"
+      },
+      {
+        "accountId": "01a2127b-bd19-7869-bf34-94dafbc6b2f1",
+        "amount": 2500,
+        "concept": "Aportación a PS5",
+        "category": "otros",
+        "date": "2026-11-24",
+        "source": "manual",
+        "transfer": {
+          "id": "01a2127b-bd1b-7ae7-913c-791209ec086e",
+          "goalId": "01a2127b-bd1b-7ade-9d26-ddd5505e5b68",
+          "contributionId": "01a2127b-bd1b-771f-b29c-140989ce58f0"
+        },
+        "id": "01a2127b-bd1b-7119-92bf-a2b3dfab66e0"
+      },
+      {
+        "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
         "amount": -4890,
         "concept": "Mercadona",
         "category": "comida",
         "date": "2026-11-24",
         "source": "atajo",
         "note": "Compra semanal",
-        "id": "01a20dd8-8e7e-7ab1-b914-382843b53f74"
+        "id": "01a2127b-bd19-7a9c-846d-03e746941d96"
       },
       {
-        "accountId": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+        "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
         "amount": -5500,
         "concept": "Gasolina",
         "category": "transporte",
         "date": "2026-11-20",
         "source": "manual",
-        "id": "01a20dd8-8e7f-7c94-9338-bd47ddd707c4"
+        "id": "01a2127b-bd19-7ea8-bd9e-5a0c7af7d597"
       },
       {
         "accountId": null,
@@ -27,8 +55,8 @@
         "category": "transporte",
         "date": "2026-11-15",
         "source": "fijo",
-        "recurringId": "01a20dd8-8e80-727d-9c7a-ccdd011d071b",
-        "id": "01a20dd8-8e82-7808-bbf2-f449e79d5da0"
+        "recurringId": "01a2127b-bd1b-79b8-a5a5-10475a8faebd",
+        "id": "01a2127b-bd1d-7029-9332-30f506b4d05a"
       },
       {
         "accountId": null,
@@ -37,27 +65,27 @@
         "category": "otros",
         "date": "2026-11-10",
         "source": "manual",
-        "id": "01a20dd8-8e7f-7254-96b3-6e3ea8136e37"
+        "id": "01a2127b-bd19-7c01-b861-960938482eb8"
       },
       {
-        "accountId": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+        "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
         "amount": -64000,
         "concept": "Hipoteca",
         "category": "hogar",
         "date": "2026-11-05",
         "source": "fijo",
-        "recurringId": "01a20dd8-8e80-7d05-b33e-1e2efc37e3c4",
-        "id": "01a20dd8-8e82-7fb7-bf88-629d27cef113"
+        "recurringId": "01a2127b-bd1a-72fa-ae62-dc9901073e33",
+        "id": "01a2127b-bd1d-7371-af8e-964caa0752bd"
       },
       {
-        "accountId": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+        "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
         "amount": 185000,
         "concept": "Nómina",
         "category": "ingresos",
         "date": "2026-11-01",
         "source": "fijo",
-        "recurringId": "01a20dd8-8e7f-79d7-9d5f-bcb19ff9d18c",
-        "id": "01a20dd8-8e82-7ab2-b97e-f9c8ed4e77e5"
+        "recurringId": "01a2127b-bd1a-7789-abd8-eb4e8d112ec6",
+        "id": "01a2127b-bd1c-7f4e-add4-a8630b060b39"
       }
     ],
     "summary": {

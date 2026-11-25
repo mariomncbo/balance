@@ -23,6 +23,7 @@ enum SheetKind: Identifiable, Hashable {
     case movement(id: String?)
     case recurring(id: String?)
     case goal(id: String?)
+    case goalDetail(id: String)
 
     var id: String {
         switch self {
@@ -30,6 +31,7 @@ enum SheetKind: Identifiable, Hashable {
         case let .movement(id): "movement-\(id ?? "new")"
         case let .recurring(id): "recurring-\(id ?? "new")"
         case let .goal(id): "goal-\(id ?? "new")"
+        case let .goalDetail(id): "goal-detail-\(id)"
         }
     }
 }
@@ -82,6 +84,7 @@ final class AppModel {
             self.ready = true
             if event == .passwordRecovery { recovering = true }
             if session == nil {
+                ResponseCache.clear()
                 profile = nil
             } else {
                 if profile == nil { await loadProfile() }
@@ -90,7 +93,10 @@ final class AppModel {
         }
     }
 
-    func invalidate() { version += 1 }
+    func invalidate() {
+        ResponseCache.markStale()
+        version += 1
+    }
 
     /// Enlace del correo: confirma el registro (`balance://confirmar`) o abre la recuperación (`balance://nueva-contrasena`).
     func handle(url: URL) async {
@@ -126,6 +132,7 @@ final class AppModel {
 
     func signOut() async {
         try? await supabase.auth.signOut()
+        ResponseCache.clear()
         profile = nil
         locked = pin.hasPin
     }
@@ -143,7 +150,12 @@ final class AppModel {
         case .background, .inactive:
             if backgroundedAt == nil { backgroundedAt = Date() }
         case .active:
-            if let t = backgroundedAt, pin.hasPin, Date().timeIntervalSince(t) > Self.relockAfter { locked = true }
+            if let t = backgroundedAt {
+                let away = Date().timeIntervalSince(t)
+                if pin.hasPin, away > Self.relockAfter { locked = true }
+                // Al volver tras un rato pueden haber llegado pagos (Atajo, fijos): se refresca detrás, sin parpadeo.
+                if away > 20 { invalidate() }
+            }
             backgroundedAt = nil
         @unknown default: break
         }

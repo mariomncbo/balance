@@ -83,3 +83,12 @@ Deno.test("sha256 y uuidv7", async () => {
   assertMatch(a, /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
   assert(a < b, "los UUIDv7 se ordenan por tiempo");
 });
+
+Deno.test("seededUuid: mismo texto, mismo id; distinto texto, distinto id; formato UUID", async () => {
+  const { seededUuid } = await import("../_shared/crypto.ts");
+  const a = await seededUuid("recurring:r1:2026-11-24");
+  assertEquals(a, await seededUuid("recurring:r1:2026-11-24"));
+  assertNotEquals(a, await seededUuid("recurring:r1:2026-12-24"));
+  assertNotEquals(a, await seededUuid("recurring:r2:2026-11-24"));
+  assert(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(a), a);
+});

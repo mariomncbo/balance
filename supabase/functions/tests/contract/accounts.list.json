@@ -3,18 +3,18 @@
     "total": 7732595,
     "accounts": [
       {
-        "id": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+        "id": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
         "name": "BBVA",
         "type": "banco",
-        "balance": 7720595,
+        "balance": 7718095,
         "openingBalance": 7500000,
         "share": 100
       },
       {
-        "id": "01a20dd8-8e7e-7a91-9cd3-43ebca38c956",
+        "id": "01a2127b-bd19-7869-bf34-94dafbc6b2f1",
         "name": "Efectivo",
         "type": "efectivo",
-        "balance": 12000,
+        "balance": 14500,
         "openingBalance": 12000,
         "share": 0
       }

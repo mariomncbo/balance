@@ -3,6 +3,7 @@ import SwiftUI
 /// Marco de una hoja modal: Cancelar a la izquierda, título centrado y el contenido desplazable.
 struct BSheet<Content: View>: View {
     let title: String
+    var closeLabel = "Cancelar"
     @ViewBuilder var content: () -> Content
     @Environment(\.dismiss) private var dismiss
 
@@ -10,7 +11,7 @@ struct BSheet<Content: View>: View {
         VStack(spacing: 0) {
             ZStack {
                 Text(title).font(.system(size: 17, weight: .bold)).foregroundStyle(Color.text).accessibilityAddTraits(.isHeader)
-                HStack { Button("Cancelar") { dismiss() }.buttonStyle(.bLink); Spacer() }
+                HStack { Button(closeLabel) { dismiss() }.buttonStyle(.bLink); Spacer() }
             }
             .padding(.horizontal, Space.s4).padding(.top, Space.s4)
             ScrollView {
@@ -34,6 +35,7 @@ struct SheetHost: View {
         case let .movement(id): MovementSheet(id: id)
         case let .recurring(id): RecurringSheet(id: id)
         case let .goal(id): GoalSheet(id: id)
+        case let .goalDetail(id): GoalDetailSheet(id: id)
         }
     }
 }

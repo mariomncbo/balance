@@ -61,8 +61,8 @@ struct MovementSheet: View {
             }
         }
         .task {
-            async let a: () = accounts.load("accounts.list")
-            async let b: () = { if let id { await tx.load("transactions.get", ["id": .string(id)]) } }()
+            async let a: () = accounts.load("accounts.list", allowStale: false)
+            async let b: () = { if let id { await tx.load("transactions.get", ["id": .string(id)], allowStale: false) } }()
             _ = await (a, b)
             fillOnce()
         }

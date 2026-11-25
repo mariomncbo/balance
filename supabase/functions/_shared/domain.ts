@@ -39,6 +39,8 @@ export interface Transaction {
   source: Source;
   note?: string;
   recurringId?: string;
+  /** Mitad de una transferencia entre cuentas (dos movimientos con el mismo id). No cuenta como gasto ni ingreso. */
+  transfer?: { id: string; goalId?: string; contributionId?: string };
 }
 
 export interface Recurring {
@@ -67,6 +69,22 @@ export interface Goal {
   deadline: string;
   /** Cuota mensual calculada al crearla, para detectar retrasos. */
   plannedMonthly?: Cents;
+  /** Cuenta donde se guarda el dinero de la meta (destino de las aportaciones). */
+  accountId?: string | null;
+  contributions?: Contribution[];
+}
+
+/** Aportación a una meta. Si movió dinero entre cuentas, `transferId` apunta a sus dos movimientos. */
+export interface Contribution {
+  id: string;
+  date: string;
+  amount: Cents;
+  transferId?: string;
+}
+
+/** Movimientos que cuentan como gasto o ingreso: todos menos las transferencias entre cuentas propias. */
+export function spending(txs: Transaction[]): Transaction[] {
+  return txs.filter((t) => !t.transfer);
 }
 
 // ───────────────────────── Fechas ─────────────────────────
@@ -210,7 +228,8 @@ export function balances(accounts: Account[], txs: Transaction[]) {
   };
 }
 
-export function monthSummary(txs: Transaction[], recurring: Recurring[], month: string, today: string) {
+export function monthSummary(allTxs: Transaction[], recurring: Recurring[], month: string, today: string) {
+  const txs = spending(allTxs);
   const inMonth = txs.filter((t) => monthOf(t.date) === month);
   const income = inMonth.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
   const expense = -inMonth.filter((t) => t.amount < 0).reduce((s, t) => s + t.amount, 0);
@@ -249,7 +268,8 @@ export function monthSummary(txs: Transaction[], recurring: Recurring[], month: 
 }
 
 /** Gasto de cada uno de los últimos `days` días, terminando hoy. */
-export function lastDays(txs: Transaction[], today: string, days = 7) {
+export function lastDays(allTxs: Transaction[], today: string, days = 7) {
+  const txs = spending(allTxs);
   const out: { date: string; expense: Cents }[] = [];
   for (let i = days - 1; i >= 0; i--) {
     const date = addDays(today, -i);
@@ -278,7 +298,11 @@ export function goalPlan(goal: Goal, today: string) {
   const monthly = monthlyFor(remaining, months);
   const progress = goal.target > 0 ? Math.min(100, Math.round((goal.saved / goal.target) * 100)) : 0;
   const behind = goal.plannedMonthly !== undefined && monthly > Math.round(goal.plannedMonthly * 1.05);
-  return { id: goal.id, name: goal.name, target: goal.target, saved: goal.saved, remaining, months, monthly, deadline: goal.deadline, progress, behind, done: remaining === 0 };
+  const contributions = [...(goal.contributions ?? [])].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  return {
+    id: goal.id, name: goal.name, target: goal.target, saved: goal.saved, remaining, months, monthly, deadline: goal.deadline, progress, behind,
+    done: remaining === 0, accountId: goal.accountId ?? null, contributions,
+  };
 }
 
 /** Plan para una meta nueva: fecha objetivo a partir de un plazo en meses. */

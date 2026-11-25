@@ -8,13 +8,13 @@ struct TransactionRow: View {
     var body: some View {
         NavigationLink(value: Route.movement(t.id)) {
             HStack(spacing: 12) {
-                BAvatar(symbol: t.category.symbol, style: t.isIncome ? .income : .neutral)
+                BAvatar(symbol: t.isTransfer ? "arrow.left.arrow.right" : t.category.symbol, style: t.isTransfer ? .accent : (t.isIncome ? .income : .neutral))
                 VStack(alignment: .leading, spacing: 0) {
                     Text(t.concept).bTitle().lineLimit(1)
                     Text(subtitle).bSub().lineLimit(1)
                 }
                 Spacer(minLength: 8)
-                Text(Money.format(t.amount, signed: true)).bMoney(t.isIncome ? .income : .text)
+                Text(Money.format(t.amount, signed: true)).bMoney(t.isIncome && !t.isTransfer ? .income : .text)
             }
             .padding(.horizontal, Space.s4).padding(.vertical, Space.s3).frame(minHeight: 64)
             .contentShape(Rectangle())
@@ -24,7 +24,7 @@ struct TransactionRow: View {
     }
 
     private var subtitle: String {
-        [t.category.label, showDate ? Dates.dayLabel(t.date, today: today) : nil, t.source.label].compactMap { $0 }.joined(separator: " · ")
+        [t.isTransfer ? "Transferencia" : t.category.label, showDate ? Dates.dayLabel(t.date, today: today) : nil, t.source.label].compactMap { $0 }.joined(separator: " · ")
     }
 }
 

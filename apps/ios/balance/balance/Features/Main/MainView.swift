@@ -74,6 +74,7 @@ struct MainView: View {
             }
         }
         .environment(router)
+        .task { await ResponseCache.warmUp() }
         #if DEBUG
         .task {
             guard Fixtures.enabled else { return }
@@ -85,6 +86,7 @@ struct MainView: View {
             case "recurring-edit": app.sheet = .recurring(id: "r3")
             case "goal": app.sheet = .goal(id: nil)
             case "goal-edit": app.sheet = .goal(id: "g2")
+            case "goal-detail": app.sheet = .goalDetail(id: "g1")
             default: break
             }
             if UserDefaults.standard.bool(forKey: "fx.menu") { menuOpen = true }

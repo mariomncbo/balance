@@ -49,7 +49,7 @@ struct MovementsView: View {
                 }
             }
         }
-        .refreshable { await reload() }
+        .refreshable { await reload(force: true) }
         .task(id: "\(app.version)-\(period.rawValue)-\(debounced)-\(category?.rawValue ?? "")") { await reload() }
         .task(id: query) {
             try? await Task.sleep(for: .milliseconds(300))
@@ -57,9 +57,9 @@ struct MovementsView: View {
         }
     }
 
-    private func reload() async {
-        async let a: () = list.load("transactions.list", params)
-        async let b: () = fixed.load("recurring.list")
+    private func reload(force: Bool = false) async {
+        async let a: () = list.load("transactions.list", params, force: force)
+        async let b: () = fixed.load("recurring.list", force: force)
         _ = await (a, b)
     }
 

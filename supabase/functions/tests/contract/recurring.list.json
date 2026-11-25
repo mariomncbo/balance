@@ -5,7 +5,7 @@
       "amount": 185000,
       "concept": "Nómina",
       "category": "ingresos",
-      "accountId": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+      "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
       "day": 1,
       "frequency": {
         "unit": "month",
@@ -13,7 +13,7 @@
       },
       "startDate": "2026-10-01",
       "lastPosted": "2026-11-01",
-      "id": "01a20dd8-8e7f-79d7-9d5f-bcb19ff9d18c",
+      "id": "01a2127b-bd1a-7789-abd8-eb4e8d112ec6",
       "nextDate": "2026-12-01",
       "progress": null
     },
@@ -22,7 +22,7 @@
       "amount": 1299,
       "concept": "Netflix",
       "category": "suscripciones",
-      "accountId": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+      "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
       "day": 25,
       "frequency": {
         "unit": "month",
@@ -30,7 +30,7 @@
       },
       "startDate": "2026-10-01",
       "lastPosted": "2026-10-25",
-      "id": "01a20dd8-8e80-7678-b09b-71004c5a9f7d",
+      "id": "01a2127b-bd1a-780e-8251-7681ddfa6467",
       "nextDate": "2026-11-25",
       "progress": null
     },
@@ -47,7 +47,7 @@
       },
       "startDate": "2026-10-01",
       "lastPosted": "2026-10-10",
-      "id": "01a20dd8-8e80-7d67-8e20-bb24ef623224",
+      "id": "01a2127b-bd1a-78a1-b442-eb43096d66ab",
       "nextDate": "2027-10-10",
       "progress": null
     },
@@ -56,7 +56,7 @@
       "amount": 64000,
       "concept": "Hipoteca",
       "category": "hogar",
-      "accountId": "01a20dd8-8e78-7ed7-ac0d-6a5a640cba3f",
+      "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
       "day": 5,
       "frequency": {
         "unit": "month",
@@ -69,7 +69,7 @@
         "principal": 15870968
       },
       "lastPosted": "2026-11-05",
-      "id": "01a20dd8-8e80-7d05-b33e-1e2efc37e3c4",
+      "id": "01a2127b-bd1a-72fa-ae62-dc9901073e33",
       "nextDate": "2026-12-05",
       "progress": 39
     },
@@ -89,7 +89,7 @@
         "pending": 270000
       },
       "lastPosted": "2026-11-15",
-      "id": "01a20dd8-8e80-727d-9c7a-ccdd011d071b",
+      "id": "01a2127b-bd1b-79b8-a5a5-10475a8faebd",
       "nextDate": "2026-12-15",
       "progress": null
     }

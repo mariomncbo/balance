@@ -20,7 +20,7 @@ struct GoalsView: View {
                 }
             }
         }
-        .refreshable { await res.load("goals.list") }
+        .refreshable { await res.load("goals.list", force: true) }
         .task(id: app.version) { await res.load("goals.list") }
     }
 
@@ -37,10 +37,10 @@ struct GoalsView: View {
             .accessibilityElement(children: .combine)
 
             BTilePair {
-                ForEach(rings) { goal in Button { app.sheet = .goal(id: goal.id) } label: { ringTile(goal) }.buttonStyle(.plain) }
+                ForEach(rings) { goal in Button { app.sheet = .goalDetail(id: goal.id) } label: { ringTile(goal) }.buttonStyle(.plain) }
                 if rings.count == 1 { Color.clear.frame(maxWidth: .infinity) }
             }
-            ForEach(rest) { goal in Button { app.sheet = .goal(id: goal.id) } label: { wideTile(goal) }.buttonStyle(.plain) }
+            ForEach(rest) { goal in Button { app.sheet = .goalDetail(id: goal.id) } label: { wideTile(goal) }.buttonStyle(.plain) }
 
             Button { app.sheet = .goal(id: nil) } label: {
                 BTile(style: .soft, spacing: 0) {

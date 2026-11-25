@@ -136,4 +136,40 @@ final class BalanceUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Ponle un nombre a la meta"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Escribe cuánto cuesta"].exists)
     }
+
+    func testGoalDetailContributeAndUndo() {
+        let app = launch(["-fx.tab", "goals"])
+        XCTAssertTrue(app.staticTexts["PS5"].waitForExistence(timeout: 5))
+        app.staticTexts["PS5"].tap()
+        XCTAssertTrue(app.buttons["Cerrar"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Aportaciones"].exists)
+        let before = app.buttons.matching(NSPredicate(format: "label == 'Deshacer'")).count
+        XCTAssertEqual(before, 1, "la meta de ejemplo ya trae una aportación")
+        // aportar 25 € con el chip rápido
+        app.buttons["+25 €"].tap()
+        app.buttons["Aportar"].tap()
+        let more = NSPredicate(format: "count == 2")
+        expectation(for: more, evaluatedWith: app.buttons.matching(NSPredicate(format: "label == 'Deshacer'")))
+        waitForExpectations(timeout: 6)
+        // deshacer la última (confirmando)
+        app.buttons.matching(NSPredicate(format: "label == 'Deshacer'")).firstMatch.tap()
+        XCTAssertTrue(app.buttons["Deshacer aportación"].waitForExistence(timeout: 3))
+        app.buttons["Deshacer aportación"].tap()
+        expectation(for: NSPredicate(format: "count == 1"), evaluatedWith: app.buttons.matching(NSPredicate(format: "label == 'Deshacer'")))
+        waitForExpectations(timeout: 6)
+    }
+
+    func testTransferInMovementsIsReadOnly() {
+        let app = launch(["-fx.tab", "movements"])
+        XCTAssertTrue(app.staticTexts["Mercadona"].waitForExistence(timeout: 5))
+        let leg = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Aportación a PS5'")).firstMatch
+        var tries = 0
+        while !(leg.exists && leg.isHittable) && tries < 8 { app.swipeUp(); tries += 1 }
+        XCTAssertTrue(leg.exists, "la transferencia debe aparecer en la lista de Movimientos")
+        leg.tap()
+        XCTAssertTrue(app.staticTexts["Se gestiona desde la meta"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Borrar movimiento"].exists, "una transferencia no se borra suelta")
+        XCTAssertFalse(app.buttons["Editar movimiento"].exists)
+        XCTAssertTrue(app.buttons["Ver meta"].exists)
+    }
 }

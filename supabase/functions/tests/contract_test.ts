@@ -71,7 +71,7 @@ const now = at("ana", NOW);
 
 async function seed() {
   const bbva = await call(creation, "accounts.create", { name: "BBVA", type: "banco", openingBalance: 7500000 });
-  await call(creation, "accounts.create", { name: "Efectivo", type: "efectivo", openingBalance: 12000 });
+  const efectivo = await call(creation, "accounts.create", { name: "Efectivo", type: "efectivo", openingBalance: 12000 });
   await call(now, "transactions.create", { accountId: bbva.id, amount: -4890, concept: "Mercadona", category: "comida", date: NOW, source: "atajo", note: "Compra semanal" });
   await call(now, "transactions.create", { accountId: bbva.id, amount: -5500, concept: "Gasolina", category: "transporte", date: "2026-11-20" });
   await call(now, "transactions.create", { accountId: bbva.id, amount: -9716, concept: "Cine", category: "ocio", date: "2026-10-15" });
@@ -82,7 +82,9 @@ async function seed() {
   await call(creation, "recurring.create", { kind: "loan", amount: 64000, concept: "Hipoteca", category: "hogar", accountId: bbva.id, day: 5, pending: 9840000, endMonth: "2041-06", principal: 15870968 });
   await call(creation, "recurring.create", { kind: "loan", amount: 15000, concept: "Coche", category: "transporte", day: 15, pending: 300000 });
   await call(at("ana", "2026-06-24"), "goals.create", { name: "Viaje a Japón", target: 300000, saved: 90000, months: 6 }); // con retraso
-  await call(now, "goals.create", { name: "PS5", target: 55000, saved: 32000, months: 3 });
+  const ps5 = await call(now, "goals.create", { name: "PS5", target: 55000, saved: 32000, months: 3 });
+  await call(now, "goals.contribute", { id: ps5.id, amount: 2500, fromAccountId: bbva.id, toAccountId: efectivo.id }); // transferencia
+  await call(now, "goals.contribute", { id: ps5.id, amount: 1000 }); // solo la meta
   await call(now, "goals.create", { name: "Móvil", target: 30000, saved: 30000, months: 2 }); // conseguida
 }
 
@@ -98,6 +100,7 @@ Deno.test("contrato: respuestas de la API con datos", async () => {
   await check("transactions.get", await call(now, "transactions.get", { id: list.items.find((t: { note?: string }) => t.note)!.id }));
   await check("recurring.list", await call(now, "recurring.list"));
   await check("goals.list", await call(now, "goals.list"));
+  await check("goals.contribute", await call(now, "goals.contribute", { id: (await call(now, "goals.list")).goals.find((g: { name: string }) => g.name === "Móvil").id, amount: 100 }));
   await check("goals.preview", await call(now, "goals.preview", { target: 55000, saved: 0, months: 6 }));
   await check("report.month", await call(now, "report.month", { month: "2026-11" }));
   // La clave de prueba se enmascara: el fichero va al repositorio y no debe parecer una clave real.
@@ -128,6 +131,9 @@ Deno.test("los datos de prueba cubren los casos que cambian la forma", async () 
   assert(fixed.some((r: { loan?: { endMonth?: string } }) => r.loan?.endMonth) && fixed.some((r: { loan?: { endMonth?: string } }) => r.loan && !r.loan.endMonth), "préstamos con y sin fecha de fin");
   const goals = (await call(now, "goals.list")).goals;
   assert(goals.some((g: { behind: boolean }) => g.behind) && goals.some((g: { done: boolean }) => g.done), "meta con retraso y meta conseguida");
+  assert(goals.some((g: { contributions: { transferId?: string }[] }) => g.contributions.some((c) => c.transferId) && g.contributions.some((c) => !c.transferId)), "aportaciones con y sin transferencia");
+  assert(goals.some((g: { accountId: string | null }) => g.accountId) && goals.some((g: { accountId: string | null }) => !g.accountId), "metas con y sin cuenta");
+  assert(tx.some((t: { transfer?: unknown }) => t.transfer) && tx.some((t: { transfer?: unknown }) => !t.transfer), "movimientos con y sin transferencia");
 });
 
 Deno.test("shape() detecta campos que faltan, sobran o cambian de tipo", () => {

@@ -14,7 +14,7 @@ struct MovementDetailView: View {
     var body: some View {
         BScreen(spacing: 14) {
             DetailHeader {
-                if tx.data != nil { BRoundButton(symbol: "pencil", label: "Editar movimiento") { app.sheet = .movement(id: id) } }
+                if let t = tx.data, !t.isTransfer { BRoundButton(symbol: "pencil", label: "Editar movimiento") { app.sheet = .movement(id: id) } }
             }
             if tx.loading && tx.data == nil { BLoadingTiles(rows: 3) }
             if let e = tx.error, tx.data == nil { BErrorState(error: e) { app.invalidate() } }
@@ -32,19 +32,26 @@ struct MovementDetailView: View {
         let account = accounts.data?.accounts.first { $0.id == t.accountId }
         VStack(spacing: 10) {
             BTile(padding: 24, spacing: 8, alignment: .center) {
-                BAvatar(symbol: t.category.symbol, style: t.isIncome ? .income : .neutral, size: 56)
+                BAvatar(symbol: t.isTransfer ? "arrow.left.arrow.right" : t.category.symbol, style: t.isTransfer ? .accent : (t.isIncome ? .income : .neutral), size: 56)
                 Text(t.concept).font(.system(size: 19, weight: .heavy)).foregroundStyle(Color.text)
-                Text(Money.format(t.amount, signed: true)).bBig(40, color: t.isIncome ? .income : .text)
+                Text(Money.format(t.amount, signed: true)).bBig(40, color: t.isIncome && !t.isTransfer ? .income : .text)
                 Text(Dates.longDate(t.date)).bSub()
             }
             BTilePair {
-                BTile(spacing: 2) { Text("Categoría").bEyebrow(); Text(t.category.label).bTitle() }
+                BTile(spacing: 2) { Text("Categoría").bEyebrow(); Text(t.isTransfer ? "Transferencia" : t.category.label).bTitle() }
                 BTile(spacing: 2) { Text("Cuenta").bEyebrow(); Text(account?.name ?? "Sin cuenta").bTitle() }
             }
             BTilePair {
-                BTile(style: t.isIncome ? .income : .expense, spacing: 2) {
-                    Text("Tipo").bFootnote(t.isIncome ? .income : .expense, weight: .bold)
-                    Text(t.isIncome ? "Ingreso" : "Gasto").bTitle()
+                if t.isTransfer {
+                    BTile(style: .soft, spacing: 2) {
+                        Text("Tipo").bFootnote(.accentText, weight: .bold)
+                        Text(t.isIncome ? "Entra en la cuenta" : "Sale de la cuenta").bTitle()
+                    }
+                } else {
+                    BTile(style: t.isIncome ? .income : .expense, spacing: 2) {
+                        Text("Tipo").bFootnote(t.isIncome ? .income : .expense, weight: .bold)
+                        Text(t.isIncome ? "Ingreso" : "Gasto").bTitle()
+                    }
                 }
                 BTile(style: .soft, spacing: 2) {
                     Text("Origen").bFootnote(.accentText, weight: .bold)
@@ -56,7 +63,18 @@ struct MovementDetailView: View {
             }
         }
         if let error { Text(error).bFootnote(.expense).frame(maxWidth: .infinity) }
-        if confirming {
+        if let goalId = t.transfer?.goalId {
+            BTile(style: .soft, spacing: 10) {
+                Text("Se gestiona desde la meta").bTitle()
+                Text("Es una aportación a una meta. Para cambiarla o deshacerla, hazlo desde la meta: así las dos cuentas quedan siempre cuadradas.").bSub()
+                Button("Ver meta") { app.sheet = .goalDetail(id: goalId) }.buttonStyle(.b(.primary, small: true))
+            }
+        } else if t.isTransfer {
+            BTile(style: .soft, spacing: 6) {
+                Text("Transferencia entre cuentas").bTitle()
+                Text("Este movimiento no se puede editar ni borrar por separado.").bSub()
+            }
+        } else if confirming {
             BTile(spacing: 12) {
                 Text("¿Borrar este movimiento?").bTitle()
                 Text("No se puede deshacer. El saldo de la cuenta se recalculará.").bSub()

@@ -95,6 +95,18 @@ export async function sha256Hex(text: string): Promise<string> {
   return Array.from(digest, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+/**
+ * UUID determinista a partir de un texto (los 16 primeros bytes de su SHA-256, con los bits de versión 5 y variante).
+ * El mismo texto da siempre el mismo id: sirve para que un mismo cobro no se pueda apuntar dos veces.
+ */
+export async function seededUuid(seed: string): Promise<string> {
+  const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(seed))).slice(0, 16);
+  bytes[6] = (bytes[6] & 0x0f) | 0x50;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 /** UUIDv7: ordenado en el tiempo (mejor para los índices que UUIDv4). */
 export function uuidv7(now = Date.now()): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));

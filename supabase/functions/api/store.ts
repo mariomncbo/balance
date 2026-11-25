@@ -35,8 +35,11 @@ export class SupabaseStore implements Store {
     return data ?? [];
   }
 
-  async insert(table: DataTable, userId: string, rows: Row[]): Promise<void> {
-    const { error } = await this.db.from(table).insert(rows.map((r) => ({ ...r, user_id: userId })));
+  async insert(table: DataTable, userId: string, rows: Row[], opts?: { ignoreDuplicates?: boolean }): Promise<void> {
+    const values = rows.map((r) => ({ ...r, user_id: userId }));
+    const { error } = opts?.ignoreDuplicates
+      ? await this.db.from(table).upsert(values, { onConflict: "id", ignoreDuplicates: true })
+      : await this.db.from(table).insert(values);
     fail(error);
   }
 

@@ -5,6 +5,7 @@ import {
   decryptPayload,
   encryptPayload,
   rowAad,
+  seededUuid,
   sha256Hex,
   type TableName,
   unwrapUserKey,
@@ -18,6 +19,7 @@ import {
   balances,
   CATEGORIES,
   type Category,
+  type Contribution,
   type Goal,
   goalPlan,
   lastDays,
@@ -45,7 +47,8 @@ export interface Store {
   /** Guarda la clave si no existe y devuelve la que quede guardada (evita carreras). */
   putWrappedKeyIfMissing(userId: string, wrapped: string): Promise<string>;
   list(table: DataTable, userId: string): Promise<Row[]>;
-  insert(table: DataTable, userId: string, rows: Row[]): Promise<void>;
+  /** Con `ignoreDuplicates`, una fila cuyo id ya existe se ignora en vez de dar error (la primera gana). */
+  insert(table: DataTable, userId: string, rows: Row[], opts?: { ignoreDuplicates?: boolean }): Promise<void>;
   update(table: DataTable, userId: string, row: Row): Promise<boolean>;
   remove(table: DataTable, userId: string, id: string): Promise<boolean>;
   // Atajo de iPhone (tabla shortcut_tokens: solo el hash de la clave, nunca la clave)
@@ -107,9 +110,9 @@ export class Vault {
     return row;
   }
 
-  async insert<T extends { id: string }>(table: DataTable, items: T[]): Promise<void> {
+  async insert<T extends { id: string }>(table: DataTable, items: T[], opts?: { ignoreDuplicates?: boolean }): Promise<void> {
     if (items.length === 0) return;
-    await this.ctx.store.insert(table, this.ctx.userId, await Promise.all(items.map((i) => this.row(table, i))));
+    await this.ctx.store.insert(table, this.ctx.userId, await Promise.all(items.map((i) => this.row(table, i))), opts);
   }
 
   async update<T extends { id: string }>(table: DataTable, item: T): Promise<void> {
@@ -208,13 +211,27 @@ function parseRecurring(p: P, id: string, today: string): Recurring {
   return r;
 }
 
+/** `accountId` opcional de una meta: null, o una cuenta que exista entre las del usuario. */
+async function goalAccount(p: P, v: Vault): Promise<string | null | undefined> {
+  if (p.accountId === undefined) return undefined;
+  if (p.accountId === null || p.accountId === "") return null;
+  const id = str(p, "accountId", 40);
+  if (!(await v.all<Account>("accounts")).some((a) => a.id === id)) throw new ApiError(400, "La cuenta no existe");
+  return id;
+}
+
+const TRANSFER_LOCKED = "Esta transferencia se gestiona desde la meta";
+const MAX_CONTRIBUTIONS = 1000;
+
 // ───────────────────────── Acciones ─────────────────────────
 
 /** Convierte en movimientos los fijos que ya han vencido. Se ejecuta antes de leer datos. */
 async function syncRecurring(v: Vault, ctx: Ctx) {
   const recurring = await v.all<Recurring>("recurring");
   const { transactions, updated } = materializeRecurring(recurring, ctx.today, () => uuidv7());
-  await v.insert("transactions", transactions);
+  // Cada cobro tiene un id fijo (fijo + fecha): si varias peticiones a la vez intentan apuntarlo, solo entra una vez.
+  for (const t of transactions) t.id = await seededUuid(`recurring:${t.recurringId}:${t.date}`);
+  await v.insert("transactions", transactions, { ignoreDuplicates: true });
   for (const r of updated) await v.update("recurring", r);
   const byId = new Map(updated.map((r) => [r.id, r]));
   return recurring.map((r) => byId.get(r.id) ?? r);
@@ -300,12 +317,16 @@ const actions: Record<string, Handler> = {
     return t;
   },
   "transactions.update": async (p, v) => {
-    const t = parseTransaction(p, str(p, "id", 40), await v.all<Account>("accounts"));
+    const id = str(p, "id", 40);
+    if ((await v.all<Transaction>("transactions")).find((t) => t.id === id)?.transfer) throw new ApiError(400, TRANSFER_LOCKED);
+    const t = parseTransaction(p, id, await v.all<Account>("accounts"));
     await v.update("transactions", t);
     return t;
   },
   "transactions.delete": async (p, v) => {
-    await v.remove("transactions", str(p, "id", 40));
+    const id = str(p, "id", 40);
+    if ((await v.all<Transaction>("transactions")).find((t) => t.id === id)?.transfer) throw new ApiError(400, TRANSFER_LOCKED);
+    await v.remove("transactions", id);
     return { ok: true };
   },
 
@@ -337,6 +358,8 @@ const actions: Record<string, Handler> = {
     const saved = cents(p, "saved", { optional: true });
     const plan = planNewGoal(target, saved, int(p, "months", 1, 600), ctx.today);
     const g: Goal = { id: uuidv7(), name: str(p, "name", 60), target, saved, deadline: plan.deadline, plannedMonthly: plan.monthly };
+    const accountId = await goalAccount(p, v);
+    if (accountId) g.accountId = accountId;
     await v.insert("goals", [g]);
     return goalPlan(g, ctx.today);
   },
@@ -347,6 +370,8 @@ const actions: Record<string, Handler> = {
     const target = cents(p, "target", { positive: true });
     const saved = cents(p, "saved", { optional: true });
     const g: Goal = { ...current, name: str(p, "name", 60), target, saved };
+    const accountId = await goalAccount(p, v);
+    if (accountId !== undefined) g.accountId = accountId;
     if (p.months !== undefined) {
       const plan = planNewGoal(target, saved, int(p, "months", 1, 600), ctx.today);
       g.deadline = plan.deadline;
@@ -354,6 +379,53 @@ const actions: Record<string, Handler> = {
     }
     await v.update("goals", g);
     return goalPlan(g, ctx.today);
+  },
+  // Aportar a una meta. Con dos cuentas, mueve el dinero de una a otra (transferencia: no es gasto ni ingreso).
+  "goals.contribute": async (p, v, ctx) => {
+    const id = str(p, "id", 40);
+    const amount = cents(p, "amount", { positive: true });
+    if (amount > 100_000_000) throw new ApiError(400, "Importe no válido: amount");
+    const goal = (await v.all<Goal>("goals")).find((g) => g.id === id);
+    if (!goal) throw new ApiError(404, "No existe");
+    const from = p.fromAccountId ? str(p, "fromAccountId", 40) : null;
+    const to = p.toAccountId ? str(p, "toAccountId", 40) : null;
+    if (Boolean(from) !== Boolean(to)) throw new ApiError(400, "Elige la cuenta de origen y la de destino");
+    if (from && from === to) throw new ApiError(400, "Elige dos cuentas distintas");
+    if (from && to) {
+      const accounts = await v.all<Account>("accounts");
+      if (!accounts.some((a) => a.id === from) || !accounts.some((a) => a.id === to)) throw new ApiError(400, "La cuenta no existe");
+    }
+    if ((goal.contributions?.length ?? 0) >= MAX_CONTRIBUTIONS) throw new ApiError(400, "Demasiadas aportaciones en esta meta");
+
+    const contribution: Contribution = { id: uuidv7(), date: ctx.today, amount };
+    if (from && to) {
+      const transfer = { id: uuidv7(), goalId: goal.id, contributionId: contribution.id };
+      const concept = `Aportación a ${goal.name}`.slice(0, 80);
+      const leg = (accountId: string, signed: number): Transaction => ({ id: uuidv7(), accountId, amount: signed, concept, category: "otros", date: ctx.today, source: "manual", transfer });
+      await v.insert("transactions", [leg(from, -amount), leg(to, amount)]);
+      contribution.transferId = transfer.id;
+      goal.accountId = to;
+    }
+    goal.saved += amount;
+    goal.contributions = [...(goal.contributions ?? []), contribution];
+    await v.update("goals", goal);
+    return goalPlan(goal, ctx.today);
+  },
+  // Deshacer una aportación: resta de la meta y borra los dos movimientos de su transferencia.
+  "goals.uncontribute": async (p, v, ctx) => {
+    const id = str(p, "id", 40);
+    const contributionId = str(p, "contributionId", 40);
+    const goal = (await v.all<Goal>("goals")).find((g) => g.id === id);
+    const c = goal?.contributions?.find((x) => x.id === contributionId);
+    if (!goal || !c) throw new ApiError(404, "No existe");
+    if (c.transferId) {
+      const legs = (await v.all<Transaction>("transactions")).filter((t) => t.transfer?.id === c.transferId);
+      for (const t of legs) await v.remove("transactions", t.id);
+    }
+    goal.saved = Math.max(0, goal.saved - c.amount);
+    goal.contributions = (goal.contributions ?? []).filter((x) => x.id !== c.id);
+    await v.update("goals", goal);
+    return goalPlan(goal, ctx.today);
   },
   "goals.delete": async (p, v) => {
     await v.remove("goals", str(p, "id", 40));

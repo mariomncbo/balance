@@ -14,7 +14,7 @@ struct HomeView: View {
             if let error = res.error, res.data == nil { BErrorState(error: error) { app.invalidate() } }
             if let d = res.data { content(d) }
         }
-        .refreshable { await res.load("home") }
+        .refreshable { await res.load("home", force: true) }
         .task(id: app.version) { await res.load("home") }
     }
 

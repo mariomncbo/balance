@@ -6,6 +6,8 @@ struct GoalSheet: View {
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
     @State private var goals = Resource<Goals>()
+    @State private var accounts = Resource<Balances>()
+    @State private var accountId = ""
     @State private var name = ""
     @State private var target = ""
     @State private var saved = ""
@@ -37,6 +39,12 @@ struct GoalSheet: View {
                     FlowLayout(spacing: 8) { ForEach(chips, id: \.self) { n in BChip(text: "\(n) meses", selected: months == n) { months = n } } }
                 }
                 planTile
+                if let list = accounts.data?.accounts, !list.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        AccountPicker(label: "Cuenta donde guardas este dinero (opcional)", selection: $accountId, accounts: list, allowNone: true)
+                        Text("Es la cuenta de destino por defecto cuando aportas a esta meta.").bFootnote().padding(.leading, 4)
+                    }
+                }
                 if let m = errors["form"] { Text(m).bFootnote(.expense) }
                 Button(busy ? "Guardando…" : "Guardar") { Task { await save() } }.buttonStyle(.bPrimary).disabled(busy)
                 if id != nil {
@@ -44,7 +52,7 @@ struct GoalSheet: View {
                 }
             }
         }
-        .task { if id != nil { await goals.load("goals.list"); fill() } }
+        .task { async let a: () = accounts.load("accounts.list", allowStale: false); if id != nil { await goals.load("goals.list", allowStale: false); fill() }; _ = await a }
         .task(id: "\(targetCents ?? -1)-\(savedCents)-\(months)") { await refreshPreview() }
     }
 
@@ -76,6 +84,7 @@ struct GoalSheet: View {
         saved = String(format: "%.2f", Double(g.saved) / 100).replacingOccurrences(of: ".", with: ",")
         months = g.months
         initialMonths = g.months
+        accountId = g.accountId ?? ""
     }
 
     private func refreshPreview() async {
@@ -94,7 +103,7 @@ struct GoalSheet: View {
         guard e.isEmpty, let t = targetCents else { return }
         busy = true
         defer { busy = false }
-        var params: [String: AnyJSON] = ["name": .string(name.trimmingCharacters(in: .whitespaces)), "target": .integer(t), "saved": .integer(savedCents)]
+        var params: [String: AnyJSON] = ["name": .string(name.trimmingCharacters(in: .whitespaces)), "target": .integer(t), "saved": .integer(savedCents), "accountId": accountId.isEmpty ? .null : .string(accountId)]
         do {
             if let id {
                 params["id"] = .string(id)

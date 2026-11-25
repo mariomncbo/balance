@@ -67,7 +67,10 @@ enum API {
 
     private static func invokeIgnoringBody<T: Decodable>(_ fn: String, _ action: String, _ params: [String: AnyJSON]) async throws -> T {
         #if DEBUG
-        if Fixtures.enabled, let empty = Empty() as? T { return empty }
+        if Fixtures.enabled, let empty = Empty() as? T {
+            Fixtures.apply(action, params: (try? JSONSerialization.jsonObject(with: JSONEncoder().encode(params))) as? [String: Any] ?? [:])
+            return empty
+        }
         #endif
         do {
             return try await supabase.functions.invoke(

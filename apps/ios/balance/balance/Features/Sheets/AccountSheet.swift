@@ -46,7 +46,7 @@ struct AccountSheet: View {
                 }
             }
         }
-        .task { if id != nil { await accounts.load("accounts.list") } }
+        .task { if id != nil { await accounts.load("accounts.list", allowStale: false) } }
         .onChange(of: editing) { _, a in fill(a) }
         .onChange(of: accounts.data) { _, _ in fill(editing) }
     }

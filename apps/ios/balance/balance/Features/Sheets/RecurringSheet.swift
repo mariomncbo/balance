@@ -29,8 +29,8 @@ struct RecurringSheet: View {
             if loading { Text("Cargando…").bSub() } else { form }
         }
         .task {
-            async let a: () = accounts.load("accounts.list")
-            async let b: () = list.load("recurring.list")
+            async let a: () = accounts.load("accounts.list", allowStale: false)
+            async let b: () = list.load("recurring.list", allowStale: false)
             _ = await (a, b)
             fillOnce()
         }
