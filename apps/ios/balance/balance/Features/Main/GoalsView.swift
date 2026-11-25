@@ -5,8 +5,7 @@ struct GoalsView: View {
     @State private var res = Resource<Goals>()
 
     var body: some View {
-        BScreen(spacing: 14, tabs: true) {
-            TabHeader(title: "Metas")
+        BScreen(spacing: 14) {
             if res.loading && res.data == nil { BLoadingTiles() }
             if let e = res.error, res.data == nil { BErrorState(error: e) { app.invalidate() } }
             if let g = res.data {
@@ -20,6 +19,7 @@ struct GoalsView: View {
                 }
             }
         }
+        .navigationTitle("Metas")
         .refreshable { await res.load("goals.list", force: true) }
         .task(id: app.version) { await res.load("goals.list") }
     }

@@ -8,12 +8,13 @@ struct HomeView: View {
     @State private var res = Resource<Home>()
 
     var body: some View {
-        BScreen(spacing: 14, tabs: true) {
-            TabHeader(eyebrow: res.data.map { Dates.longDate($0.today) }, title: app.profile.map { "Hola, \($0.name)" } ?? "Hola")
+        BScreen(spacing: 14) {
             if res.loading && res.data == nil { BLoadingTiles() }
             if let error = res.error, res.data == nil { BErrorState(error: error) { app.invalidate() } }
             if let d = res.data { content(d) }
         }
+        .navigationTitle(app.profile.map { "Hola, \($0.name)" } ?? "Hola")
+        .navigationSubtitle(res.data.map { Dates.longDate($0.today).capitalizedFirst } ?? "")
         .refreshable { await res.load("home", force: true) }
         .task(id: app.version) { await res.load("home") }
     }

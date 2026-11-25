@@ -2,10 +2,9 @@ import SwiftUI
 
 // MARK: - Pantalla
 
-/// Fondo lavanda con margen lateral de 16 pt. Cada pantalla la usa como contenedor desplazable.
+/// Fondo gris claro con margen lateral de 16 pt. Cada pantalla la usa como contenedor desplazable.
 struct BScreen<Content: View>: View {
     var spacing: CGFloat = 16
-    var tabs = false
     @ViewBuilder var content: () -> Content
 
     var body: some View {
@@ -13,7 +12,7 @@ struct BScreen<Content: View>: View {
             VStack(alignment: .leading, spacing: spacing, content: content)
                 .padding(.horizontal, Space.s4)
                 .padding(.top, Space.s4)
-                .padding(.bottom, tabs ? 120 : Space.s5)
+                .padding(.bottom, Space.s5)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .scrollBounceBehavior(.basedOnSize)

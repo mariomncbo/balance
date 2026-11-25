@@ -17,6 +17,16 @@ final class BalanceUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["BBVA"].exists)
     }
 
+    func testSlideAlongTabBar() {
+        let app = launch()
+        XCTAssertTrue(app.buttons["Principal"].waitForExistence(timeout: 5))
+        // Deslizar el dedo de Principal a Metas sin levantarlo
+        app.buttons["Principal"].press(forDuration: 0.2, thenDragTo: app.buttons["Metas"])
+        XCTAssertTrue(app.staticTexts["Para cumplir todas tus metas"].waitForExistence(timeout: 5))
+        app.buttons["Metas"].press(forDuration: 0.2, thenDragTo: app.buttons["Movimientos"])
+        XCTAssertTrue(app.staticTexts["Próximos pagos"].waitForExistence(timeout: 5))
+    }
+
     func testTabsNavigate() {
         let app = launch()
         XCTAssertTrue(app.buttons["Movimientos"].waitForExistence(timeout: 5))

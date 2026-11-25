@@ -10,11 +10,17 @@ enum Route: Hashable {
     case shortcut
 }
 
+/// Pestañas de la barra inferior nativa.
+enum MainTab: Hashable {
+    case home, movements, goals
+}
+
 @MainActor @Observable
 final class Router {
-    var path: [Route] = []
     var tab: MainTab = .home
-    func push(_ r: Route) { path.append(r) }
+    /// Cada pestaña tiene su propia pila de navegación (como en las apps de Apple).
+    var paths: [MainTab: [Route]] = [:]
+    func push(_ r: Route) { paths[tab, default: []].append(r) }
 
     #if DEBUG
     /// Argumentos de depuración (solo con -fixtures): -fx.tab movements|goals, -fx.route report|settings|movement|account|chat.
@@ -23,12 +29,12 @@ final class Router {
         let d = UserDefaults.standard
         switch d.string(forKey: "fx.tab") { case "movements": tab = .movements; case "goals": tab = .goals; default: break }
         switch d.string(forKey: "fx.route") {
-        case "report": path = [.report]
-        case "settings": path = [.settings]
-        case "movement": path = [.movement("t1")]
-        case "account": path = [.account("a1")]
-        case "chat": path = [.chat]
-        case "shortcut": path = [.shortcut]
+        case "report": paths[tab] = [.report]
+        case "settings": paths[tab] = [.settings]
+        case "movement": paths[tab] = [.movement("t1")]
+        case "account": paths[tab] = [.account("a1")]
+        case "chat": paths[tab] = [.chat]
+        case "shortcut": paths[tab] = [.shortcut]
         default: break
         }
     }
@@ -37,42 +43,21 @@ final class Router {
     #endif
 }
 
-/// La app con sesión: tres pestañas con barra Liquid Glass, botones de cristal arriba y el menú del +.
+/// La app con sesión: barra de pestañas nativa (Liquid Glass del sistema) y, arriba, la cápsula nativa con
+/// el menú «+» (añadir movimiento), Asistente y Ajustes.
 struct MainView: View {
     @Environment(AppModel.self) private var app
     @State private var router = Router()
-    @State private var menuOpen = false
 
     var body: some View {
         @Bindable var router = router
-        NavigationStack(path: $router.path) {
-            ZStack {
-                switch router.tab {
-                case .home: HomeView()
-                case .movements: MovementsView()
-                case .goals: GoalsView()
-                }
-            }
-            .background(Color.bg.ignoresSafeArea())
-            .overlay(alignment: .topTrailing) {
-                GlassTopButtons(onChat: { router.push(.chat) }, onSettings: { router.push(.settings) })
-                    .padding(.trailing, Space.s4).padding(.top, Space.s2)
-            }
-            .safeAreaInset(edge: .bottom) { GlassBar(selection: $router.tab, menuOpen: $menuOpen) }
-            .overlay { if menuOpen { AddMenu(onManual: { menuOpen = false; app.sheet = .movement(id: nil) }, onClose: { menuOpen = false }) } }
-            .animation(.easeOut(duration: 0.2), value: menuOpen)
-            .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(for: Route.self) { route in
-                switch route {
-                case let .movement(id): MovementDetailView(id: id)
-                case let .account(id): AccountDetailView(id: id)
-                case .report: ReportView()
-                case .settings: SettingsView()
-                case .chat: ComingSoonView(title: "Asistente", symbol: "sparkles", text: "Pronto podrás preguntarle por tus gastos y tus metas.")
-                case .shortcut: ShortcutGuideView()
-                }
-            }
+        TabView(selection: $router.tab) {
+            Tab("Principal", systemImage: "house", value: MainTab.home) { stack(.home) { HomeView() } }
+            Tab("Movimientos", systemImage: "arrow.up.arrow.down", value: MainTab.movements) { stack(.movements) { MovementsView() } }
+            Tab("Metas", systemImage: "target", value: MainTab.goals) { stack(.goals) { GoalsView() } }
         }
+        .tabBarMinimizeBehavior(.never)
+        .tint(Color.accent)
         .environment(router)
         .task { await ResponseCache.warmUp() }
         #if DEBUG
@@ -89,24 +74,40 @@ struct MainView: View {
             case "goal-detail": app.sheet = .goalDetail(id: "g1")
             default: break
             }
-            if UserDefaults.standard.bool(forKey: "fx.menu") { menuOpen = true }
         }
         #endif
     }
-}
 
-/// Cabecera de las pestañas: deja hueco a los botones de cristal de la derecha.
-struct TabHeader: View {
-    var eyebrow: String?
-    let title: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if let eyebrow { Text(eyebrow).bEyebrow() }
-            Text(title).font(.system(size: 24, weight: .heavy)).tracking(-0.4).foregroundStyle(Color.text).accessibilityAddTraits(.isHeader)
+    /// Pila de navegación de una pestaña: título grande nativo (lo pone cada pantalla), botones de arriba y destinos.
+    private func stack<Content: View>(_ tab: MainTab, @ViewBuilder content: () -> Content) -> some View {
+        NavigationStack(path: Binding(get: { router.paths[tab] ?? [] }, set: { router.paths[tab] = $0 })) {
+            content()
+                .navigationBarTitleDisplayMode(.large)
+                .toolbar {
+                    // Menú nativo del «+», solo a la izquierda. IA y Escaneo llegan en fases posteriores.
+                    ToolbarItem(placement: .topBarLeading) {
+                        Menu("Añadir movimiento", systemImage: "plus") {
+                            Button("A mano", systemImage: "pencil") { app.sheet = .movement(id: nil) }
+                            Button("IA · Pronto", systemImage: "sparkles") {}.disabled(true)
+                            Button("Escaneo · Pronto", systemImage: "camera") {}.disabled(true)
+                        }
+                    }
+                    ToolbarItemGroup(placement: .topBarTrailing) {
+                        Button("Asistente de IA", systemImage: "sparkles") { router.push(.chat) }
+                        Button("Ajustes", systemImage: "slider.horizontal.3") { router.push(.settings) }
+                    }
+                }
+                .navigationDestination(for: Route.self) { route in
+                    switch route {
+                    case let .movement(id): MovementDetailView(id: id)
+                    case let .account(id): AccountDetailView(id: id)
+                    case .report: ReportView()
+                    case .settings: SettingsView()
+                    case .chat: ComingSoonView(title: "Asistente", symbol: "sparkles", text: "Pronto podrás preguntarle por tus gastos y tus metas.")
+                    case .shortcut: ShortcutGuideView()
+                    }
+                }
         }
-        .frame(minHeight: 44, alignment: .leading)
-        .padding(.trailing, 104)
     }
 }
 

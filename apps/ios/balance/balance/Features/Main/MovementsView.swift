@@ -22,8 +22,7 @@ struct MovementsView: View {
     }
 
     var body: some View {
-        BScreen(spacing: 12, tabs: true) {
-            TabHeader(title: "Movimientos")
+        BScreen(spacing: 12) {
             fixedSection
             HStack(spacing: 8) {
                 HStack(spacing: 8) {
@@ -52,6 +51,7 @@ struct MovementsView: View {
                 }
             }
         }
+        .navigationTitle("Movimientos")
         .refreshable { await reload(force: true) }
         .task(id: "\(app.version)-\(period.rawValue)-\(debounced)-\(category?.rawValue ?? "")") { await reload() }
         .task(id: query) {
