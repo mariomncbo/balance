@@ -65,8 +65,8 @@ struct GoalDetailSheet: View {
             }
             BProgress(value: g.progress)
             if g.done { Text("¡Meta conseguida!").bFootnote(.income, weight: .bold) }
-            else if g.behind { Text("Te faltan \(Money.format(g.remaining, round: g.remaining % 100 == 0)) · aparta \(Money.format(g.monthly, round: true))/mes · con retraso").bFootnote(.warning, weight: .bold) }
-            else { Text("Te faltan \(Money.format(g.remaining, round: g.remaining % 100 == 0)) · aparta \(Money.format(g.monthly, round: true))/mes hasta \(Dates.monthName(g.deadline).lowercased())").bFootnote() }
+            else if g.behind { Text("Te faltan \(Money.format(g.remaining, round: g.remaining % 100 == 0)) · aparta \(g.amountText) · con retraso").bFootnote(.warning, weight: .bold) }
+            else { Text("Te faltan \(Money.format(g.remaining, round: g.remaining % 100 == 0)) · aparta \(g.isShort ? g.amountText : "\(g.amountText) hasta \(Dates.monthName(Dates.monthOf(g.deadline)).lowercased())")").bFootnote() }
         }
         .accessibilityElement(children: .combine)
     }

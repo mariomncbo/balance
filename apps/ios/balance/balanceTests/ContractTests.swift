@@ -90,7 +90,8 @@ struct ContractTests {
         let contributed: GoalPlan = try decode("goals.contribute")
         #expect(contributed.done, "la meta de prueba queda conseguida con la última aportación")
         let p: GoalPreview = try decode("goals.preview")
-        #expect(p.monthly > 0 && p.deadline.count == 7)
+        #expect(p.monthly > 0 && p.deadline.count == 10 && p.short == false, "fecha límite completa AAAA-MM-DD")
+        #expect(g.goals.allSatisfy { $0.short != nil && $0.daysLeft != nil })
     }
 
     @Test func report() throws {

@@ -1,23 +1,25 @@
 {
   "data": {
-    "id": "01a2127b-bd1c-7fb2-a5bb-c1b0366e540d",
+    "id": "01a21497-990f-72cf-8f1f-b355905266d1",
     "name": "Móvil",
     "target": 30000,
     "saved": 30100,
     "remaining": 0,
     "months": 2,
     "monthly": 0,
-    "deadline": "2027-01",
+    "deadline": "2027-01-24",
     "progress": 100,
     "behind": false,
     "done": true,
     "accountId": null,
     "contributions": [
       {
-        "id": "01a2127b-bd23-7ab6-8f60-4fec2515ea53",
+        "id": "01a21497-9919-71e6-97b8-f6304fed6bf4",
         "date": "2026-11-24",
         "amount": 100
       }
-    ]
+    ],
+    "short": false,
+    "daysLeft": 61
   }
 }

@@ -20,6 +20,9 @@ import {
   CATEGORIES,
   type Category,
   type Contribution,
+  DURATION_MAX,
+  DURATION_UNITS,
+  type DurationUnit,
   type Goal,
   goalPlan,
   lastDays,
@@ -28,6 +31,7 @@ import {
   monthOf,
   monthSummary,
   nextPayment,
+  parseDate,
   planNewGoal,
   type Recurring,
   type Source,
@@ -196,19 +200,27 @@ function parseRecurring(p: P, id: string, today: string): Recurring {
     concept: str(p, "concept", 60),
     category: oneOf(p, "category", CATEGORY_KEYS),
     accountId: p.accountId ? str(p, "accountId", 40) : null,
-    day: int(p, "day", 1, 31),
-    frequency: {
-      unit: p.frequencyUnit === undefined ? "month" : oneOf(p, "frequencyUnit", ["month", "year"] as const),
-      every: p.frequencyEvery === undefined ? 1 : int(p, "frequencyEvery", 1, 24),
-    },
+    day: p.day === undefined && (p.frequencyUnit === "day" || p.frequencyUnit === "week") ? 1 : int(p, "day", 1, 31),
+    frequency: { unit: "month", every: 1 },
     startDate: p.startDate === undefined ? today : date(p, "startDate"),
   };
+  const unit = p.frequencyUnit === undefined ? "month" : oneOf(p, "frequencyUnit", DURATION_UNITS);
+  r.frequency = { unit, every: p.frequencyEvery === undefined ? 1 : int(p, "frequencyEvery", 1, DURATION_MAX[unit]) };
+  // Con días o semanas no hay "día del mes": manda la fecha del primer cobro.
+  if (unit === "day" || unit === "week") r.day = parseDate(r.startDate).day;
   if (kind === "loan") {
     r.loan = { pending: cents(p, "pending", { positive: true }) };
     if (p.endMonth !== undefined) r.loan.endMonth = month(p, "endMonth");
     if (p.principal !== undefined) r.loan.principal = cents(p, "principal", { positive: true });
   }
   return r;
+}
+
+/** Plazo de una meta: `durationAmount` + `durationUnit`, o `months` (la forma antigua, que sigue usando la web). */
+function duration(p: P): { amount: number; unit: DurationUnit } {
+  if (p.durationAmount === undefined) return { amount: int(p, "months", 1, DURATION_MAX.month), unit: "month" };
+  const unit = oneOf(p, "durationUnit", DURATION_UNITS);
+  return { amount: int(p, "durationAmount", 1, DURATION_MAX[unit]), unit };
 }
 
 /** `accountId` opcional de una meta: null, o una cuenta que exista entre las del usuario. */
@@ -352,11 +364,15 @@ const actions: Record<string, Handler> = {
   },
 
   "goals.list": async (_p, v, ctx) => goalsView(await v.all<Goal>("goals"), ctx.today),
-  "goals.preview": async (p, _v, ctx) => planNewGoal(cents(p, "target", { positive: true }), cents(p, "saved", { optional: true }), int(p, "months", 1, 600), ctx.today),
+  "goals.preview": async (p, _v, ctx) => {
+    const d = duration(p);
+    return planNewGoal(cents(p, "target", { positive: true }), cents(p, "saved", { optional: true }), d.amount, d.unit, ctx.today);
+  },
   "goals.create": async (p, v, ctx) => {
     const target = cents(p, "target", { positive: true });
     const saved = cents(p, "saved", { optional: true });
-    const plan = planNewGoal(target, saved, int(p, "months", 1, 600), ctx.today);
+    const d = duration(p);
+    const plan = planNewGoal(target, saved, d.amount, d.unit, ctx.today);
     const g: Goal = { id: uuidv7(), name: str(p, "name", 60), target, saved, deadline: plan.deadline, plannedMonthly: plan.monthly };
     const accountId = await goalAccount(p, v);
     if (accountId) g.accountId = accountId;
@@ -372,8 +388,9 @@ const actions: Record<string, Handler> = {
     const g: Goal = { ...current, name: str(p, "name", 60), target, saved };
     const accountId = await goalAccount(p, v);
     if (accountId !== undefined) g.accountId = accountId;
-    if (p.months !== undefined) {
-      const plan = planNewGoal(target, saved, int(p, "months", 1, 600), ctx.today);
+    if (p.months !== undefined || p.durationAmount !== undefined) {
+      const d = duration(p);
+      const plan = planNewGoal(target, saved, d.amount, d.unit, ctx.today);
       g.deadline = plan.deadline;
       g.plannedMonthly = plan.monthly;
     }

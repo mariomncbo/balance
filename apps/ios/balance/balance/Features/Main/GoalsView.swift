@@ -55,8 +55,9 @@ struct GoalsView: View {
 
     @ViewBuilder private func status(_ g: GoalPlan) -> some View {
         if g.done { BPill(text: "Conseguida", style: .income, symbol: "checkmark") }
-        else if g.behind { BPill(text: "\(Money.format(g.monthly, round: true))/mes · con retraso", style: .warning, symbol: "exclamationmark.triangle") }
-        else { BPill(text: "\(Money.format(g.monthly, round: true))/mes · \(Dates.monthShort(g.deadline))", style: .accent) }
+        else if g.behind { BPill(text: "\(g.amountText) · con retraso", style: .warning, symbol: "exclamationmark.triangle") }
+        else if g.isShort { BPill(text: g.amountText, style: .accent) }
+        else { BPill(text: "\(g.amountText) · \(Dates.monthShort(g.deadline))", style: .accent) }
     }
 
     private func ringTile(_ g: GoalPlan) -> some View {
@@ -79,10 +80,10 @@ struct GoalsView: View {
             BProgress(value: g.progress)
             HStack {
                 if g.done { Text("Conseguida").bFootnote(.income, weight: .bold) }
-                else if g.behind { Text("Aparta \(Money.format(g.monthly, round: true))/mes · con retraso").bFootnote(.warning, weight: .bold) }
-                else { (Text("Aparta ") + Text("\(Money.format(g.monthly, round: true))/mes").bold().foregroundStyle(Color.accentText)).bFootnote() }
+                else if g.behind { Text("Aparta \(g.amountText) · con retraso").bFootnote(.warning, weight: .bold) }
+                else { (Text("Aparta ") + Text(g.amountText).bold().foregroundStyle(Color.accentText)).bFootnote() }
                 Spacer()
-                Text(Dates.monthTitle(g.deadline)).bFootnote()
+                if !g.isShort { Text(Dates.monthTitle(Dates.monthOf(g.deadline))).bFootnote() }
             }
         }
         .accessibilityElement(children: .combine)

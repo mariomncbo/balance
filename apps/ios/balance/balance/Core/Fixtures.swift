@@ -68,14 +68,23 @@ enum Fixtures {
             let id = params["id"] as? String
             body = tx.first { $0.contains("\"id\":\"\(id ?? "t1")\"") } ?? tx[0]
         case "recurring.list":
-            body = #"[{"id":"r1","kind":"expense","amount":1299,"concept":"Netflix","category":"suscripciones","accountId":"a1","day":29,"frequency":{"unit":"month","every":1},"startDate":"2026-01-29","loan":null,"nextDate":"2026-11-29","progress":null},{"id":"r4","kind":"expense","amount":5800,"concept":"Luz","category":"hogar","accountId":"a1","day":28,"frequency":{"unit":"month","every":1},"startDate":"2026-01-28","loan":null,"nextDate":"2026-11-28","progress":null},{"id":"r2","kind":"income","amount":185000,"concept":"Nómina","category":"ingresos","accountId":"a1","day":1,"frequency":{"unit":"month","every":1},"startDate":"2026-01-01","loan":null,"nextDate":"2026-12-01","progress":null},{"id":"r3","kind":"loan","amount":64000,"concept":"Hipoteca","category":"hogar","accountId":"a1","day":5,"frequency":{"unit":"month","every":1},"startDate":"2016-06-05","loan":{"pending":9840000,"endMonth":"2041-06","principal":15870968},"nextDate":"2026-12-05","progress":38}]"#
+            body = #"[{"id":"r1","kind":"expense","amount":1299,"concept":"Netflix","category":"suscripciones","accountId":"a1","day":29,"frequency":{"unit":"month","every":1},"startDate":"2026-01-29","loan":null,"nextDate":"2026-11-29","progress":null},{"id":"r5","kind":"expense","amount":1500,"concept":"Pádel","category":"ocio","accountId":"a1","day":6,"frequency":{"unit":"week","every":1},"startDate":"2026-11-06","loan":null,"nextDate":"2026-11-27","progress":null},{"id":"r4","kind":"expense","amount":5800,"concept":"Luz","category":"hogar","accountId":"a1","day":28,"frequency":{"unit":"month","every":1},"startDate":"2026-01-28","loan":null,"nextDate":"2026-11-28","progress":null},{"id":"r2","kind":"income","amount":185000,"concept":"Nómina","category":"ingresos","accountId":"a1","day":1,"frequency":{"unit":"month","every":1},"startDate":"2026-01-01","loan":null,"nextDate":"2026-12-01","progress":null},{"id":"r3","kind":"loan","amount":64000,"concept":"Hipoteca","category":"hogar","accountId":"a1","day":5,"frequency":{"unit":"month","every":1},"startDate":"2016-06-05","loan":{"pending":9840000,"endMonth":"2041-06","principal":15870968},"nextDate":"2026-12-05","progress":38}]"#
         case "goals.list":
             body = empty ? #"{"goals":[],"monthlyTotal":0,"saved":0,"target":0}"#
                 : #"{"goals":[\#(goal),{"id":"g2","name":"Viaje a Japón","target":300000,"saved":90000,"remaining":210000,"months":4,"monthly":52500,"deadline":"2027-03","progress":30,"behind":true,"done":false,"accountId":null,"contributions":[]},{"id":"g3","name":"Fondo de emergencia","target":600000,"saved":210000,"remaining":390000,"months":39,"monthly":10000,"deadline":"2030-03","progress":35,"behind":false,"done":false,"accountId":null,"contributions":[]}],"monthlyTotal":70200,"saved":\#(goalsSaved),"target":955000}"#
         case "goals.preview":
-            let t = params["target"] as? Int ?? 0, s = params["saved"] as? Int ?? 0, m = max(1, params["months"] as? Int ?? 1)
-            let monthly = Int((Double(max(0, t - s)) / Double(m) / 100).rounded(.up)) * 100
-            body = #"{"deadline":"\#(Dates.shiftMonth("2026-11", m))","monthly":\#(monthly)}"#
+            // Igual que el servidor: fecha límite exacta; con menos de un mes, el total que falta.
+            let t = params["target"] as? Int ?? 0, s = params["saved"] as? Int ?? 0
+            let n = max(1, params["durationAmount"] as? Int ?? params["months"] as? Int ?? 1)
+            let unit = TimeUnit(rawValue: params["durationUnit"] as? String ?? "month") ?? .month
+            let (deadline, months): (String, Int) = switch unit {
+            case .day: (Dates.addDays(today, n), n / 31)
+            case .week: (Dates.addDays(today, 7 * n), 7 * n / 31)
+            case .month: ("\(Dates.shiftMonth("2026-11", n))-24", n)
+            case .year: ("\(Dates.shiftMonth("2026-11", 12 * n))-24", 12 * n)
+            }
+            let monthly = Int((Double(max(0, t - s)) / Double(max(1, months)) / 100).rounded(.up)) * 100
+            body = #"{"deadline":"\#(deadline)","monthly":\#(monthly),"short":\#(months < 1)}"#
         case "shortcut.status":
             body = empty ? #"{"active":false,"hint":null,"createdAt":null,"lastUsedAt":null,"accountId":null}"#
                 : #"{"active":true,"hint":"3f9a","createdAt":"2026-11-20T10:00:00.000Z","lastUsedAt":"2026-11-24T09:12:00.000Z","accountId":null}"#

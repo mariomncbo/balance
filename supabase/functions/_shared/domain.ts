@@ -51,9 +51,10 @@ export interface Recurring {
   concept: string;
   category: Category;
   accountId: string | null;
-  /** Día del mes (1–31). Si el mes es más corto, se usa el último día. */
+  /** Día del mes (1–31). Si el mes es más corto, se usa el último día. Con días o semanas es el día de `startDate`. */
   day: number;
-  frequency: { unit: "month" | "year"; every: number };
+  frequency: { unit: DurationUnit; every: number };
+  /** Con días o semanas es la fecha del primer cobro; con meses o años, desde cuándo cuenta. */
   startDate: string;
   /** Última fecha ya convertida en movimiento. */
   lastPosted?: string;
@@ -65,7 +66,7 @@ export interface Goal {
   name: string;
   target: Cents;
   saved: Cents;
-  /** Mes en que se quiere conseguir. */
+  /** Fecha en que se quiere conseguir: "AAAA-MM-DD" (o "AAAA-MM" en las metas creadas antes de los plazos libres). */
   deadline: string;
   /** Cuota mensual calculada al crearla, para detectar retrasos. */
   plannedMonthly?: Cents;
@@ -118,6 +119,37 @@ export function daysInMonth(y: number, m: number): number {
   return new Date(Date.UTC(y, m, 0)).getUTCDate();
 }
 
+/** Días de `from` a `to` (negativo si `to` es anterior). */
+export function daysBetween(from: string, to: string): number {
+  const a = parseDate(from), b = parseDate(to);
+  return Math.round((Date.UTC(b.y, b.m - 1, b.day) - Date.UTC(a.y, a.m - 1, a.day)) / 86_400_000);
+}
+
+/** Suma meses a una fecha conservando el día (o el último del mes si es más corto): 31 ene + 1 = 28 feb. */
+export function addMonthsToDate(d: string, n: number): string {
+  const { day } = parseDate(d);
+  const month = addMonths(monthOf(d), n);
+  const [y, m] = month.split("-").map(Number);
+  return fmtDate(y, m, Math.min(day, daysInMonth(y, m)));
+}
+
+// ───────────────────────── Plazos ─────────────────────────
+
+export const DURATION_UNITS = ["day", "week", "month", "year"] as const;
+export type DurationUnit = (typeof DURATION_UNITS)[number];
+/** Máximo que se puede escribir en cada unidad (unos 10 años; 50 en años). */
+export const DURATION_MAX: Record<DurationUnit, number> = { day: 3650, week: 520, month: 600, year: 50 };
+
+/** Fecha que resulta de sumar `n` días, semanas, meses o años a `d`. */
+export function addDuration(d: string, n: number, unit: DurationUnit): string {
+  switch (unit) {
+    case "day": return addDays(d, n);
+    case "week": return addDays(d, 7 * n);
+    case "month": return addMonthsToDate(d, n);
+    case "year": return addMonthsToDate(d, 12 * n);
+  }
+}
+
 export function addDays(d: string, n: number): string {
   const { y, m, day } = parseDate(d);
   const t = new Date(Date.UTC(y, m - 1, day + n));
@@ -133,6 +165,7 @@ function dueIn(month: string, day: number): string {
 
 /** Fechas de cobro de un fijo en el intervalo (from, to], ambos "AAAA-MM-DD". */
 export function occurrences(r: Recurring, from: string, to: string): string[] {
+  if (r.frequency.unit === "day" || r.frequency.unit === "week") return dailyOccurrences(r, from, to);
   const step = r.frequency.unit === "year" ? 12 * r.frequency.every : r.frequency.every;
   const out: string[] = [];
   let month = monthOf(r.startDate);
@@ -144,6 +177,22 @@ export function occurrences(r: Recurring, from: string, to: string): string[] {
     if (r.loan?.endMonth && monthOf(due) > r.loan.endMonth) break;
     if (due > from) out.push(due);
     month = addMonths(month, step);
+  }
+  return out;
+}
+
+/** Cobros cada N días o semanas, contando desde `startDate` (el primer cobro). Calcula el primero sin recorrer los anteriores. */
+function dailyOccurrences(r: Recurring, from: string, to: string): string[] {
+  const step = r.frequency.every * (r.frequency.unit === "week" ? 7 : 1);
+  const out: string[] = [];
+  // primer índice k con startDate + k·step > from
+  let k = Math.max(0, Math.floor(daysBetween(r.startDate, from) / step) + 1);
+  if (daysBetween(r.startDate, from) < 0) k = 0;
+  for (let i = 0; i < 1200; i++, k++) {
+    const due = addDays(r.startDate, k * step);
+    if (due > to) break;
+    if (r.loan?.endMonth && monthOf(due) > r.loan.endMonth) break;
+    if (due > from) out.push(due);
   }
   return out;
 }
@@ -201,7 +250,7 @@ export function loanProgress(r: Recurring): number | null {
 /** Próximo pago fijo (gasto o préstamo) a partir de hoy, incluido. */
 export function nextPayment(recurring: Recurring[], today: string): { recurring: Recurring; date: string } | null {
   let best: { recurring: Recurring; date: string } | null = null;
-  const horizon = addDays(today, 400);
+  const horizon = addMonthsToDate(today, 12 * 51); // cubre hasta "cada 50 años"
   for (const r of recurring) {
     if (r.kind === "income") continue;
     if (r.loan && r.loan.pending <= 0) continue;
@@ -292,21 +341,44 @@ export function monthlyFor(remaining: Cents, months: number): Cents {
   return Math.ceil(remaining / months / 100) * 100;
 }
 
+/** Meses completos de `today` a `deadline` ("AAAA-MM-DD"): 25 nov → 24 dic es 0; → 25 dic es 1. */
+export function fullMonthsUntil(today: string, deadline: string): number {
+  let m = monthsBetween(monthOf(today), monthOf(deadline));
+  while (m > 0 && addMonthsToDate(today, m) > deadline) m--;
+  return Math.max(0, m);
+}
+
+/**
+ * Cuánto apartar para una meta. Con un mes o más por delante, al mes (`short: false`).
+ * Con menos de un mes, el total que falta (`short: true`).
+ * Las metas antiguas, con fecha "AAAA-MM", siguen con el cálculo de siempre (mínimo un mes).
+ */
+export function goalSchedule(deadline: string, remaining: Cents, today: string) {
+  if (deadline.length === 7) {
+    const months = monthsLeft(deadline, today);
+    const end = fmtDate(...(deadline.split("-").map(Number) as [number, number]), daysInMonth(...(deadline.split("-").map(Number) as [number, number])));
+    return { months, monthly: monthlyFor(remaining, months), short: false, daysLeft: Math.max(0, daysBetween(today, end)) };
+  }
+  const months = fullMonthsUntil(today, deadline);
+  const short = months < 1;
+  return { months, monthly: monthlyFor(remaining, Math.max(1, months)), short, daysLeft: Math.max(0, daysBetween(today, deadline)) };
+}
+
 export function goalPlan(goal: Goal, today: string) {
   const remaining = Math.max(0, goal.target - goal.saved);
-  const months = monthsLeft(goal.deadline, today);
-  const monthly = monthlyFor(remaining, months);
+  const { months, monthly, short, daysLeft } = goalSchedule(goal.deadline, remaining, today);
   const progress = goal.target > 0 ? Math.min(100, Math.round((goal.saved / goal.target) * 100)) : 0;
   const behind = goal.plannedMonthly !== undefined && monthly > Math.round(goal.plannedMonthly * 1.05);
   const contributions = [...(goal.contributions ?? [])].sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
   return {
     id: goal.id, name: goal.name, target: goal.target, saved: goal.saved, remaining, months, monthly, deadline: goal.deadline, progress, behind,
-    done: remaining === 0, accountId: goal.accountId ?? null, contributions,
+    done: remaining === 0, accountId: goal.accountId ?? null, contributions, short, daysLeft,
   };
 }
 
-/** Plan para una meta nueva: fecha objetivo a partir de un plazo en meses. */
-export function planNewGoal(target: Cents, saved: Cents, months: number, today: string) {
-  const deadline = addMonths(monthOf(today), months);
-  return { deadline, monthly: monthlyFor(Math.max(0, target - saved), months) };
+/** Plan para una meta nueva: fecha objetivo a partir de un plazo libre (N días, semanas, meses o años). */
+export function planNewGoal(target: Cents, saved: Cents, amount: number, unit: DurationUnit, today: string) {
+  const deadline = addDuration(today, amount, unit);
+  const { monthly, short } = goalSchedule(deadline, Math.max(0, target - saved), today);
+  return { deadline, monthly, short };
 }

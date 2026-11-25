@@ -3,9 +3,9 @@ import Testing
 @testable import balance
 
 struct FixedMonthTests {
-    private func fixed(_ id: String, _ kind: RecurringKind, _ amount: Int, day: Int, next: String?, unit: String = "month", loanPending: Int? = nil) -> Recurring {
+    private func fixed(_ id: String, _ kind: RecurringKind, _ amount: Int, day: Int, next: String?, unit: String = "month", every: Int = 1, loanPending: Int? = nil) -> Recurring {
         Recurring(id: id, kind: kind, amount: amount, concept: id.capitalized, category: kind == .income ? .ingresos : .hogar, accountId: nil, day: day,
-                  frequency: Frequency(unit: unit, every: 1), startDate: "2026-01-01",
+                  frequency: Frequency(unit: unit, every: every), startDate: "2026-01-01",
                   loan: loanPending.map { LoanInfo(pending: $0, endMonth: nil, principal: nil) }, nextDate: next, progress: nil)
     }
     private func tx(_ recurringId: String?, _ amount: Int, _ date: String) -> Transaction {
@@ -67,6 +67,32 @@ struct FixedMonthTests {
         #expect(fm.pending.map(\.fixed.id) == ["luz"])
         #expect(fm.later.map(\.id) == ["hipoteca", "gimnasio", "coche"], "todos los gastos fijos se ven; la nómina no")
         #expect(fm.later.map(FixedMonth.laterLabel) == ["3 dic", "5 dic", "Terminado"])
+    }
+
+    @Test func weeklyFixedCountsEveryPaymentLeftThisMonth() {
+        // Pádel cada semana: pagado el 4 y el 11; quedan el 18 (hoy) y el 25
+        let fm = FixedMonth(recurring: [fixed("padel", .expense, 1500, day: 4, next: "2026-11-18", unit: "week")],
+                            transactions: [tx("padel", -1500, "2026-11-04"), tx("padel", -1500, "2026-11-11")], today: today)
+        #expect(fm.pending.first?.count == 2)
+        #expect(fm.paidTotal == 3000 && fm.pendingTotal == 3000 && fm.monthTotal == 6000)
+        #expect(fm.expenseCount == 1 && fm.paidCount == 0, "un fijo semanal cuenta una vez y no está pagado hasta el último del mes")
+        #expect(FixedMonth.timesLeftInMonth(fixed("p", .expense, 1, day: 1, next: nil, unit: "day", every: 10), from: "2026-11-05") == 3)
+    }
+
+    @Test func monthlyEquivalentOfIncome() {
+        #expect(FixedMonth.monthlyEquivalent(fixed("a", .income, 120000, day: 1, next: nil)) == 120000)
+        #expect(FixedMonth.monthlyEquivalent(fixed("b", .income, 30000, day: 1, next: nil, every: 3)) == 10000)
+        #expect(FixedMonth.monthlyEquivalent(fixed("c", .income, 12000, day: 1, next: nil, unit: "week")) == 52000)
+        #expect(FixedMonth.monthlyEquivalent(fixed("d", .income, 90000, day: 1, next: nil, unit: "year")) == 0)
+    }
+
+    @Test func timeUnitTexts() {
+        #expect(TimeUnit.month.format(1) == "1 mes" && TimeUnit.month.format(3) == "3 meses")
+        #expect(TimeUnit.week.every(1) == "Cada semana" && TimeUnit.week.every(2) == "Cada 2 semanas")
+        #expect(TimeUnit.year.format(2) == "2 años" && TimeUnit.day.format(1) == "1 día")
+        #expect(TimeUnit.week.parse("10") == .success(10))
+        #expect(TimeUnit.year.parse("51") == .failure(.init(message: "Como mucho 50 años")))
+        #expect(TimeUnit.day.parse("0") == .failure(.init(message: "Escribe un número, por ejemplo 6")))
     }
 
     @Test func incomeLabel() {

@@ -62,6 +62,9 @@ enum Dates {
     /// "2027-02" → "feb".
     static func monthShort(_ month: String) -> String { monthsShort[parse("\(month)-01").m - 1] }
 
+    /// "5 dic" a partir de "AAAA-MM-DD".
+    static func shortDate(_ s: String) -> String { let p = parse(s); return "\(p.d) \(monthsShort[p.m - 1])" }
+
     static func monthName(_ month: String) -> String { months[parse("\(month)-01").m - 1].capitalizedFirst }
 
     static func longDate(_ s: String) -> String {

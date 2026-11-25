@@ -1,6 +1,7 @@
 {
   "data": {
-    "deadline": "2027-05",
-    "monthly": 9200
+    "deadline": "2027-05-24",
+    "monthly": 9200,
+    "short": false
   }
 }

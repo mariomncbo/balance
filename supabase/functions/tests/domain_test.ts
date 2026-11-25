@@ -1,6 +1,7 @@
 import { assertEquals } from "jsr:@std/assert@1.0.13";
 import {
   type Account,
+  addDuration,
   addMonths,
   balances,
   goalPlan,
@@ -109,7 +110,50 @@ Deno.test("metas: cuánto apartar y si vas con retraso (cifras del diseño)", ()
   assertEquals([ps5.monthly, ps5.months, ps5.progress, ps5.behind], [7700, 3, 58, false]);
   const japon = goalPlan({ id: "jp", name: "Japón", target: 300000, saved: 90000, deadline: "2027-03", plannedMonthly: 35000 }, TODAY);
   assertEquals([japon.monthly, japon.progress, japon.behind], [52500, 30, true]);
-  assertEquals(planNewGoal(55000, 0, 6, TODAY), { deadline: "2027-05", monthly: 9200 });
+  assertEquals(planNewGoal(55000, 0, 6, "month", TODAY), { deadline: "2027-05-23", monthly: 9200, short: false });
+});
+
+Deno.test("plazos libres: sumar días, semanas, meses y años", () => {
+  assertEquals(addDuration("2026-11-23", 10, "day"), "2026-12-03");
+  assertEquals(addDuration("2026-11-23", 3, "week"), "2026-12-14");
+  assertEquals(addDuration("2027-01-31", 1, "month"), "2027-02-28");
+  assertEquals(addDuration("2028-02-29", 1, "year"), "2029-02-28");
+});
+
+Deno.test("metas con plazo libre: al mes con un mes o más, el total con menos", () => {
+  // 10 semanas desde el 23 nov = 1 feb: 2 meses completos
+  assertEquals(planNewGoal(60000, 0, 10, "week", TODAY), { deadline: "2027-02-01", monthly: 30000, short: false });
+  // 2 años = 24 meses
+  assertEquals(planNewGoal(240000, 0, 2, "year", TODAY).monthly, 10000);
+  // 10 días: menos de un mes, se pide el total que falta
+  assertEquals(planNewGoal(12000, 0, 10, "day", TODAY), { deadline: "2026-12-03", monthly: 12000, short: true });
+  // justo un mes ya es "al mes"
+  assertEquals(planNewGoal(12000, 0, 30, "day", "2026-11-01").short, false);
+  const g = goalPlan({ id: "g", name: "Regalo", target: 12000, saved: 2000, deadline: "2026-12-03", plannedMonthly: 10000 }, TODAY);
+  assertEquals([g.short, g.monthly, g.daysLeft, g.months, g.behind], [true, 10000, 10, 0, false]);
+});
+
+Deno.test("metas antiguas (fecha AAAA-MM) mantienen sus importes", () => {
+  const ps5 = goalPlan({ id: "ps5", name: "PS5", target: 55000, saved: 32000, deadline: "2027-02", plannedMonthly: 7700 }, TODAY);
+  assertEquals([ps5.monthly, ps5.months, ps5.short, ps5.daysLeft], [7700, 3, false, 97]);
+});
+
+Deno.test("fijos cada N semanas o días, desde la fecha del primer cobro", () => {
+  const gym: Recurring = { ...netflix, id: "gym", day: 28, frequency: { unit: "week", every: 2 }, startDate: "2026-11-28", lastPosted: undefined };
+  assertEquals(occurrences(gym, "2026-11-23", "2026-12-31"), ["2026-11-28", "2026-12-12", "2026-12-26"]);
+  assertEquals(occurrences(gym, "2026-12-12", "2026-12-31"), ["2026-12-26"]);
+  const pan: Recurring = { ...gym, id: "pan", frequency: { unit: "day", every: 10 }, startDate: "2020-01-01" };
+  // empieza hace años: calcula el siguiente sin recorrer todos los anteriores
+  assertEquals(occurrences(pan, "2026-11-23", "2026-12-10"), ["2026-11-25", "2026-12-05"]);
+  assertEquals(nextPayment([gym], TODAY)?.date, "2026-11-28");
+  const { transactions } = materializeRecurring([gym], "2026-12-13", id);
+  assertEquals(transactions.map((t) => t.date), ["2026-11-28", "2026-12-12"]);
+});
+
+Deno.test("fijos cada 10 años: el próximo cobro se encuentra aunque esté lejos", () => {
+  const r: Recurring = { ...netflix, frequency: { unit: "year", every: 10 }, startDate: "2026-12-01", lastPosted: undefined, day: 1 };
+  assertEquals(nextPayment([r], TODAY)?.date, "2026-12-01");
+  assertEquals(nextPayment([r], "2026-12-02")?.date, "2036-12-01");
 });
 
 Deno.test("las transferencias entre cuentas no cuentan como gasto ni ingreso, pero sí mueven saldos", () => {

@@ -125,8 +125,16 @@ final class BalanceUITests: XCTestCase {
         cost.tap(); cost.typeText("600")
         // 600 € en 6 meses (plazo por defecto) = 100 €/mes
         XCTAssertTrue(app.staticTexts["100\u{00A0}€ al mes"].waitForExistence(timeout: 5))
-        app.buttons["12 meses"].tap()
+        // Plazo libre: 12 meses
+        let n = app.textFields["¿En cuánto tiempo?: número"]
+        let end = n.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)) // cursor al final
+        end.tap(); n.typeText(XCUIKeyboardKey.delete.rawValue + "12")
         XCTAssertTrue(app.staticTexts["50\u{00A0}€ al mes"].waitForExistence(timeout: 5))
+        // 3 semanas: menos de un mes, se pide el total
+        end.tap(); n.typeText(XCUIKeyboardKey.delete.rawValue + XCUIKeyboardKey.delete.rawValue + "3")
+        app.buttons["Semanas"].tap()
+        XCTAssertTrue(app.staticTexts["600\u{00A0}€"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["antes del 15 dic de 2026"].exists)
     }
 
     func testGoalSheetValidatesNameAndCost() {

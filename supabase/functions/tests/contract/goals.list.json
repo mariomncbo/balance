@@ -2,61 +2,67 @@
   "data": {
     "goals": [
       {
-        "id": "01a2127b-bd1b-7d1a-bf42-d15960617e52",
+        "id": "01a21497-990f-71bf-a6a5-20f9a4c02bbf",
         "name": "Viaje a Japón",
         "target": 300000,
         "saved": 90000,
         "remaining": 210000,
         "months": 1,
         "monthly": 210000,
-        "deadline": "2026-12",
+        "deadline": "2026-12-24",
         "progress": 30,
         "behind": true,
         "done": false,
         "accountId": null,
-        "contributions": []
+        "contributions": [],
+        "short": false,
+        "daysLeft": 30
       },
       {
-        "id": "01a2127b-bd1b-7ade-9d26-ddd5505e5b68",
+        "id": "01a21497-990f-7b32-8e99-bf1329058f6c",
         "name": "PS5",
         "target": 55000,
         "saved": 35500,
         "remaining": 19500,
         "months": 3,
         "monthly": 6500,
-        "deadline": "2027-02",
+        "deadline": "2027-02-24",
         "progress": 65,
         "behind": false,
         "done": false,
-        "accountId": "01a2127b-bd19-7869-bf34-94dafbc6b2f1",
+        "accountId": "01a21497-990c-73e7-a6df-a099d639e577",
         "contributions": [
           {
-            "id": "01a2127b-bd1b-7750-a19b-e2da808323c2",
-            "date": "2026-11-24",
-            "amount": 1000
-          },
-          {
-            "id": "01a2127b-bd1b-771f-b29c-140989ce58f0",
+            "id": "01a21497-990f-7b71-8e82-1e967288fa02",
             "date": "2026-11-24",
             "amount": 2500,
-            "transferId": "01a2127b-bd1b-7ae7-913c-791209ec086e"
+            "transferId": "01a21497-990f-710b-9100-c403d17e7dff"
+          },
+          {
+            "id": "01a21497-990f-7037-bfee-c820c06b2672",
+            "date": "2026-11-24",
+            "amount": 1000
           }
-        ]
+        ],
+        "short": false,
+        "daysLeft": 92
       },
       {
-        "id": "01a2127b-bd1c-7fb2-a5bb-c1b0366e540d",
+        "id": "01a21497-990f-72cf-8f1f-b355905266d1",
         "name": "Móvil",
         "target": 30000,
         "saved": 30000,
         "remaining": 0,
         "months": 2,
         "monthly": 0,
-        "deadline": "2027-01",
+        "deadline": "2027-01-24",
         "progress": 100,
         "behind": false,
         "done": true,
         "accountId": null,
-        "contributions": []
+        "contributions": [],
+        "short": false,
+        "daysLeft": 61
       }
     ],
     "monthlyTotal": 216500,

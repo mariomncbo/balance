@@ -4,7 +4,8 @@ import Foundation
 /// «Pagado» sale de los movimientos reales del mes que generó cada fijo (llevan su `recurringId`), no de suposiciones.
 struct FixedMonth: Equatable {
     struct Paid: Equatable { let fixed: Recurring; let amount: Int; let date: String }
-    struct Pending: Equatable { let fixed: Recurring; let date: String; let daysLeft: Int }
+    /// `count`: cobros que quedan este mes (más de uno en los fijos cada N días o semanas). `date` es el próximo.
+    struct Pending: Equatable { let fixed: Recurring; let date: String; let daysLeft: Int; var count = 1 }
     struct Income: Equatable { let fixed: Recurring; let received: String?; let next: String? }
 
     let month: String
@@ -17,11 +18,25 @@ struct FixedMonth: Equatable {
     let later: [Recurring]
 
     var paidTotal: Int { paid.reduce(0) { $0 + $1.amount } }
-    var pendingTotal: Int { pending.reduce(0) { $0 + $1.fixed.amount } }
+    var pendingTotal: Int { pending.reduce(0) { $0 + $1.fixed.amount * $1.count } }
     var monthTotal: Int { paidTotal + pendingTotal }
-    var expenseCount: Int { paid.count + pending.count }
-    /// Ingresos fijos mensuales (los anuales no cuentan para el mes).
-    var monthlyIncome: Int { incomes.filter { $0.fixed.frequency.unit == "month" }.reduce(0) { $0 + $1.fixed.amount } }
+    /// Gastos fijos que cobran este mes (cada uno cuenta una vez, aunque sea semanal).
+    var expenseCount: Int { Set(paid.map(\.fixed.id) + pending.map(\.fixed.id)).count }
+    /// Los que ya no tienen nada pendiente este mes.
+    var paidCount: Int { Set(paid.map(\.fixed.id)).subtracting(pending.map(\.fixed.id)).count }
+    /// Ingresos fijos en equivalente mensual (los anuales no cuentan para el mes).
+    var monthlyIncome: Int { incomes.reduce(0) { $0 + Self.monthlyEquivalent($1.fixed) } }
+
+    /// Lo que supone un fijo al mes: cada 2 meses → la mitad; semanal → ×52/12; diario → ×365/12. Anual: 0.
+    static func monthlyEquivalent(_ r: Recurring) -> Int {
+        let n = Double(max(1, r.frequency.every)), a = Double(r.amount)
+        switch TimeUnit(rawValue: r.frequency.unit) ?? .month {
+        case .month: return Int((a / n).rounded())
+        case .week: return Int((a * 52 / 12 / n).rounded())
+        case .day: return Int((a * 365 / 12 / n).rounded())
+        case .year: return 0
+        }
+    }
     /// Lo que queda de los ingresos fijos tras pagar los gastos fijos del mes. nil si no hay ingresos fijos.
     var freeAfterFixed: Int? { monthlyIncome > 0 ? monthlyIncome - monthTotal : nil }
     var progress: Int { monthTotal > 0 ? min(100, Int((Double(paidTotal) / Double(monthTotal) * 100).rounded())) : 0 }
@@ -45,7 +60,8 @@ struct FixedMonth: Equatable {
             guard let next = r.nextDate, next >= today else { continue }
             if let loan = r.loan, loan.pending <= 0 { continue }
             if next == lastPosted { continue } // el de hoy ya se apuntó (su próxima fecha la da el servidor)
-            let item = Pending(fixed: r, date: next, daysLeft: Dates.daysBetween(today, next))
+            var item = Pending(fixed: r, date: next, daysLeft: Dates.daysBetween(today, next))
+            item.count = Self.timesLeftInMonth(r, from: next)
             if Dates.monthOf(next) == month { pending.append(item) } else { upcoming.append(item) }
         }
         self.paid = paid.sorted { $0.date < $1.date }
@@ -69,6 +85,19 @@ struct FixedMonth: Equatable {
     }
 
     static func shortDate(_ s: String) -> String { "\(Dates.parse(s).d) \(Dates.monthShort(Dates.monthOf(s)))" }
+
+    /// Cobros desde `from` (incluido) hasta fin de mes. Con meses o años es siempre 1.
+    static func timesLeftInMonth(_ r: Recurring, from: String) -> Int {
+        let step: Int
+        switch TimeUnit(rawValue: r.frequency.unit) ?? .month {
+        case .day: step = max(1, r.frequency.every)
+        case .week: step = 7 * max(1, r.frequency.every)
+        case .month, .year: return 1
+        }
+        var n = 0, d = from
+        while Dates.monthOf(d) == Dates.monthOf(from) { n += 1; d = Dates.addDays(d, step) }
+        return n
+    }
 
     /// «Hoy», «Mañana» o «En 6 días», con el día del mes: «En 6 días · día 24».
     static func whenLabel(_ p: Pending) -> String {

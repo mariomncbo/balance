@@ -11,16 +11,18 @@ struct GoalSheet: View {
     @State private var name = ""
     @State private var target = ""
     @State private var saved = ""
-    @State private var months = 6
-    @State private var initialMonths: Int?
+    @State private var durationText = "6"
+    @State private var unit: TimeUnit = .month
+    /// Plazo con el que se abrió al editar: solo se envía si cambia.
+    @State private var initialDuration: (String, TimeUnit)?
     @State private var filled = false
     @State private var preview: GoalPreview?
     @State private var errors: [String: String] = [:]
     @State private var busy = false
 
-    private static let options = [3, 6, 12, 24]
     private var editing: GoalPlan? { id.flatMap { id in goals.data?.goals.first { $0.id == id } } }
-    private var chips: [Int] { (initialMonths.map { Self.options.contains($0) ? Self.options : [$0] + Self.options }) ?? Self.options }
+    private var duration: Int? { try? unit.parse(durationText).get() }
+    private var durationChanged: Bool { initialDuration.map { $0.0 != durationText || $0.1 != unit } ?? true }
     private var targetCents: Int? { Money.parse(target) }
     private var savedCents: Int { saved.trimmingCharacters(in: .whitespaces).isEmpty ? 0 : (Money.parse(saved) ?? 0) }
 
@@ -34,10 +36,7 @@ struct GoalSheet: View {
                     BTileMoneyField(label: "Cuesta", text: $target, error: errors["target"])
                     BTileMoneyField(label: "Ya tienes", text: $saved, error: errors["saved"])
                 }
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("¿En cuántos meses?").bEyebrow().padding(.leading, 4)
-                    FlowLayout(spacing: 8) { ForEach(chips, id: \.self) { n in BChip(text: "\(n) meses", selected: months == n) { months = n } } }
-                }
+                BDurationField(label: "¿En cuánto tiempo?", amount: $durationText, unit: $unit, error: errors["duration"])
                 planTile
                 if let list = accounts.data?.accounts, !list.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
@@ -53,7 +52,7 @@ struct GoalSheet: View {
             }
         }
         .task { async let a: () = accounts.load("accounts.list", allowStale: false); if id != nil { await goals.load("goals.list", allowStale: false); fill() }; _ = await a }
-        .task(id: "\(targetCents ?? -1)-\(savedCents)-\(months)") { await refreshPreview() }
+        .task(id: "\(targetCents ?? -1)-\(savedCents)-\(durationText)-\(unit.rawValue)") { await refreshPreview() }
     }
 
     private var planTile: some View {
@@ -65,10 +64,18 @@ struct GoalSheet: View {
             } else if missing == 0 {
                 Text("¡Ya la tienes!").bBig(28, color: .onAccent)
                 Text("Con lo que llevas ahorrado, ya cubres esta meta.").font(.system(size: 14, weight: .semibold))
+            } else if duration == nil {
+                Text("Escribe en cuánto tiempo la quieres y te diremos cuánto apartar.").font(.system(size: 15, weight: .semibold))
             } else if let p = preview {
                 Text("Te faltan \(Money.format(missing, round: missing % 100 == 0)). Aparta").bEyebrow(.onAccent).opacity(0.85)
-                Text("\(Money.format(p.monthly, round: true)) al mes").bBig(36, color: .onAccent)
-                Text(verbatim: "y la tendrás en \(Dates.monthName(p.deadline).lowercased()) de \(String(Dates.parse("\(p.deadline)-01").y))").font(.system(size: 14, weight: .semibold))
+                if p.short == true {
+                    // Menos de un mes: el total, no una cuota mensual
+                    Text(Money.format(p.monthly, round: true)).bBig(36, color: .onAccent)
+                    Text(verbatim: "antes del \(Dates.shortDate(p.deadline)) de \(String(Dates.parse(p.deadline).y))").font(.system(size: 14, weight: .semibold))
+                } else {
+                    Text("\(Money.format(p.monthly, round: true)) al mes").bBig(36, color: .onAccent)
+                    Text(verbatim: "y la tendrás en \(Dates.monthName(Dates.monthOf(p.deadline)).lowercased()) de \(String(Dates.parse(p.deadline).y))").font(.system(size: 14, weight: .semibold))
+                }
             } else {
                 Text("Calculando…").font(.system(size: 15, weight: .semibold))
             }
@@ -82,16 +89,17 @@ struct GoalSheet: View {
         name = g.name
         target = String(format: "%.2f", Double(g.target) / 100).replacingOccurrences(of: ".", with: ",")
         saved = String(format: "%.2f", Double(g.saved) / 100).replacingOccurrences(of: ".", with: ",")
-        months = g.months
-        initialMonths = g.months
+        // Se rellena con el tiempo que le queda: en meses, o en días si es menos de un mes.
+        if g.isShort, let d = g.daysLeft { durationText = String(max(1, d)); unit = .day } else { durationText = String(max(1, g.months)); unit = .month }
+        initialDuration = (durationText, unit)
         accountId = g.accountId ?? ""
     }
 
     private func refreshPreview() async {
-        guard let t = targetCents, t > 0 else { preview = nil; return }
+        guard let t = targetCents, t > 0, let n = duration else { preview = nil; return }
         try? await Task.sleep(for: .milliseconds(250))
         if Task.isCancelled { return }
-        preview = try? await API.call("goals.preview", ["target": .integer(t), "saved": .integer(savedCents), "months": .integer(months)], as: GoalPreview.self)
+        preview = try? await API.call("goals.preview", ["target": .integer(t), "saved": .integer(savedCents), "durationAmount": .integer(n), "durationUnit": .string(unit.rawValue)], as: GoalPreview.self)
     }
 
     private func save() async {
@@ -99,8 +107,9 @@ struct GoalSheet: View {
         if name.trimmingCharacters(in: .whitespaces).isEmpty { e["name"] = "Ponle un nombre a la meta" }
         if (targetCents ?? 0) <= 0 { e["target"] = "Escribe cuánto cuesta" }
         if !saved.trimmingCharacters(in: .whitespaces).isEmpty && Money.parse(saved) == nil { e["saved"] = "Importe no válido" }
+        if case .failure(let err) = unit.parse(durationText) { e["duration"] = err.message }
         errors = e
-        guard e.isEmpty, let t = targetCents else { return }
+        guard e.isEmpty, let t = targetCents, let n = duration else { return }
         busy = true
         defer { busy = false }
         var params: [String: AnyJSON] = ["name": .string(name.trimmingCharacters(in: .whitespaces)), "target": .integer(t), "saved": .integer(savedCents), "accountId": accountId.isEmpty ? .null : .string(accountId)]
@@ -108,10 +117,10 @@ struct GoalSheet: View {
             if let id {
                 params["id"] = .string(id)
                 // El plazo solo se cambia si se ha tocado: así no se pierde el aviso de "vas con retraso" al editar otra cosa.
-                if months != initialMonths { params["months"] = .integer(months) }
+                if durationChanged { params["durationAmount"] = .integer(n); params["durationUnit"] = .string(unit.rawValue) }
                 try await API.send("goals.update", params)
             } else {
-                params["months"] = .integer(months)
+                params["durationAmount"] = .integer(n); params["durationUnit"] = .string(unit.rawValue)
                 try await API.send("goals.create", params)
             }
             app.invalidate(); dismiss()

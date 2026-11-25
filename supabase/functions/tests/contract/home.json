@@ -5,7 +5,7 @@
       "total": 7732595,
       "accounts": [
         {
-          "id": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
+          "id": "01a21497-9905-7088-90d3-558f091df9bd",
           "name": "BBVA",
           "type": "banco",
           "balance": 7718095,
@@ -13,7 +13,7 @@
           "share": 100
         },
         {
-          "id": "01a2127b-bd19-7869-bf34-94dafbc6b2f1",
+          "id": "01a21497-990c-73e7-a6df-a099d639e577",
           "name": "Efectivo",
           "type": "efectivo",
           "balance": 14500,
@@ -86,85 +86,87 @@
       "total": 10390
     },
     "nextPayment": {
-      "id": "01a2127b-bd1a-780e-8251-7681ddfa6467",
+      "id": "01a21497-990d-72a7-a0bf-1b5189e05385",
       "concept": "Netflix",
       "amount": 1299,
       "date": "2026-11-25"
     },
     "topGoal": {
-      "id": "01a2127b-bd1b-7ade-9d26-ddd5505e5b68",
+      "id": "01a21497-990f-7b32-8e99-bf1329058f6c",
       "name": "PS5",
       "target": 55000,
       "saved": 35500,
       "remaining": 19500,
       "months": 3,
       "monthly": 6500,
-      "deadline": "2027-02",
+      "deadline": "2027-02-24",
       "progress": 65,
       "behind": false,
       "done": false,
-      "accountId": "01a2127b-bd19-7869-bf34-94dafbc6b2f1",
+      "accountId": "01a21497-990c-73e7-a6df-a099d639e577",
       "contributions": [
         {
-          "id": "01a2127b-bd1b-7750-a19b-e2da808323c2",
-          "date": "2026-11-24",
-          "amount": 1000
-        },
-        {
-          "id": "01a2127b-bd1b-771f-b29c-140989ce58f0",
+          "id": "01a21497-990f-7b71-8e82-1e967288fa02",
           "date": "2026-11-24",
           "amount": 2500,
-          "transferId": "01a2127b-bd1b-7ae7-913c-791209ec086e"
+          "transferId": "01a21497-990f-710b-9100-c403d17e7dff"
+        },
+        {
+          "id": "01a21497-990f-7037-bfee-c820c06b2672",
+          "date": "2026-11-24",
+          "amount": 1000
         }
-      ]
+      ],
+      "short": false,
+      "daysLeft": 92
     },
     "latest": [
       {
-        "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
+        "accountId": "01a21497-9905-7088-90d3-558f091df9bd",
         "amount": -2500,
         "concept": "Aportación a PS5",
         "category": "otros",
         "date": "2026-11-24",
         "source": "manual",
         "transfer": {
-          "id": "01a2127b-bd1b-7ae7-913c-791209ec086e",
-          "goalId": "01a2127b-bd1b-7ade-9d26-ddd5505e5b68",
-          "contributionId": "01a2127b-bd1b-771f-b29c-140989ce58f0"
+          "id": "01a21497-990f-710b-9100-c403d17e7dff",
+          "goalId": "01a21497-990f-7b32-8e99-bf1329058f6c",
+          "contributionId": "01a21497-990f-7b71-8e82-1e967288fa02"
         },
-        "id": "01a2127b-bd1b-72b6-bd1f-38cfce8c0897"
+        "id": "01a21497-990f-7ad8-9c1a-33e1af0dd4f4"
       },
       {
-        "accountId": "01a2127b-bd19-7869-bf34-94dafbc6b2f1",
+        "accountId": "01a21497-990c-73e7-a6df-a099d639e577",
         "amount": 2500,
         "concept": "Aportación a PS5",
         "category": "otros",
         "date": "2026-11-24",
         "source": "manual",
         "transfer": {
-          "id": "01a2127b-bd1b-7ae7-913c-791209ec086e",
-          "goalId": "01a2127b-bd1b-7ade-9d26-ddd5505e5b68",
-          "contributionId": "01a2127b-bd1b-771f-b29c-140989ce58f0"
+          "id": "01a21497-990f-710b-9100-c403d17e7dff",
+          "goalId": "01a21497-990f-7b32-8e99-bf1329058f6c",
+          "contributionId": "01a21497-990f-7b71-8e82-1e967288fa02"
         },
-        "id": "01a2127b-bd1b-7119-92bf-a2b3dfab66e0"
+        "id": "01a21497-990f-7288-bc8e-fb80f3e10e13"
       },
       {
-        "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
+        "accountId": "01a21497-9905-7088-90d3-558f091df9bd",
         "amount": -4890,
         "concept": "Mercadona",
         "category": "comida",
         "date": "2026-11-24",
         "source": "atajo",
         "note": "Compra semanal",
-        "id": "01a2127b-bd19-7a9c-846d-03e746941d96"
+        "id": "01a21497-990c-74c7-b54f-a51d262cf02a"
       },
       {
-        "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
+        "accountId": "01a21497-9905-7088-90d3-558f091df9bd",
         "amount": -5500,
         "concept": "Gasolina",
         "category": "transporte",
         "date": "2026-11-20",
         "source": "manual",
-        "id": "01a2127b-bd19-7ea8-bd9e-5a0c7af7d597"
+        "id": "01a21497-990c-7245-9593-a0de68d4dde0"
       },
       {
         "accountId": null,
@@ -173,8 +175,8 @@
         "category": "transporte",
         "date": "2026-11-15",
         "source": "fijo",
-        "recurringId": "01a2127b-bd1b-79b8-a5a5-10475a8faebd",
-        "id": "01a2127b-bd1d-7029-9332-30f506b4d05a"
+        "recurringId": "01a21497-990e-719f-b464-6ecda7b289c6",
+        "id": "d35ace1b-d1e4-504e-a066-ca0a9924974b"
       }
     ]
   }

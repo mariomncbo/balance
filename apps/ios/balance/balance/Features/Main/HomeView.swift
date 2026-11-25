@@ -75,7 +75,7 @@ struct HomeView: View {
                 .frame(width: 76, height: 76)
                 .accessibilityElement().accessibilityLabel("\(g.name): \(g.progress) %")
                 Text(g.name).bTitle()
-                Text("\(Money.format(g.monthly, round: true))/mes").bFootnote(.accentText, weight: .bold)
+                Text(g.amountText).bFootnote(.accentText, weight: .bold)
             }
         } else {
             BTile(style: .soft, spacing: 6) {

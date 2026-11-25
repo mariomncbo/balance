@@ -148,6 +148,13 @@ struct GoalPlan: Codable, Identifiable, Hashable {
     let accountId: String?
     /// De la más reciente a la más antigua.
     let contributions: [Contribution]?
+    /// Queda menos de un mes: `monthly` es el total que falta, no una cuota al mes.
+    let short: Bool?
+    let daysLeft: Int?
+
+    var isShort: Bool { short == true }
+    /// "120 € antes del 5 dic" o "77 €/mes".
+    var amountText: String { isShort ? "\(Money.format(monthly, round: true)) antes del \(Dates.shortDate(deadline))" : "\(Money.format(monthly, round: true))/mes" }
 }
 
 struct Goals: Codable, Hashable {
@@ -228,6 +235,8 @@ struct Report: Codable, Hashable {
 struct GoalPreview: Codable, Hashable {
     let deadline: String
     let monthly: Int
+    /// Menos de un mes: `monthly` es el total que falta.
+    let short: Bool?
 }
 
 /// Estado de la clave del Atajo (`shortcut.status`). La clave nunca viene aquí: solo sus 4 últimos caracteres.

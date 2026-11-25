@@ -33,6 +33,25 @@ Deno.test("flujo completo con las cifras del diseño", async () => {
   assertEquals((await call(tomorrow, "transactions.list", { period: "day" })).items.length, 1);
 });
 
+Deno.test("plazos libres en metas y fijos", async () => {
+  const u: Ctx = { userId: "plazos", today: "2026-11-23", store, master };
+  const corta = await call(u, "goals.preview", { target: 12000, durationAmount: 10, durationUnit: "day" });
+  assertEquals(corta, { deadline: "2026-12-03", monthly: 12000, short: true });
+  const meta = await call(u, "goals.create", { name: "Bici", target: 60000, durationAmount: 10, durationUnit: "week" });
+  assertEquals([meta.deadline, meta.monthly, meta.short], ["2027-02-01", 30000, false]);
+  const cambiada = await call(u, "goals.update", { id: meta.id, name: "Bici", target: 60000, durationAmount: 1, durationUnit: "year" });
+  assertEquals([cambiada.deadline, cambiada.months], ["2027-11-23", 12]);
+  await assertRejects(() => call(u, "goals.preview", { target: 100, durationAmount: 0, durationUnit: "week" }), ApiError);
+  await assertRejects(() => call(u, "goals.preview", { target: 100, durationAmount: 3, durationUnit: "siglos" }), ApiError);
+  await assertRejects(() => call(u, "goals.preview", { target: 100, durationAmount: 51, durationUnit: "year" }), ApiError);
+
+  const gym = await call(u, "recurring.create", { kind: "expense", amount: 3000, concept: "Gimnasio", category: "salud", frequencyUnit: "week", frequencyEvery: 2, startDate: "2026-11-28" });
+  assertEquals([gym.frequency, gym.day, gym.nextDate], [{ unit: "week", every: 2 }, 28, "2026-11-28"]);
+  const editado = await call(u, "recurring.update", { id: gym.id, kind: "expense", amount: 3000, concept: "Gimnasio", category: "salud", frequencyUnit: "day", frequencyEvery: 10, startDate: "2026-11-30" });
+  assertEquals([editado.frequency.unit, editado.nextDate], ["day", "2026-11-30"]);
+  await assertRejects(() => call(u, "recurring.create", { kind: "expense", amount: 1, concept: "x", category: "otros", day: 1, frequencyUnit: "month", frequencyEvery: 601 }), ApiError);
+});
+
 Deno.test("en el almacén solo hay texto cifrado", () => {
   const dump = JSON.stringify([...store.tables.values()]);
   for (const word of ["BBVA", "Mercadona", "Netflix", "PS5", "185000", "comida"]) {

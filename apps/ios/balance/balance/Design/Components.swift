@@ -208,6 +208,39 @@ struct BField: View {
     }
 }
 
+/// Plazo o frecuencia libre: un número y su unidad (Días / Semanas / Meses / Años).
+struct BDurationField: View {
+    let label: String
+    @Binding var amount: String
+    @Binding var unit: TimeUnit
+    var error: String?
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label).bEyebrow().padding(.leading, 4)
+            HStack(spacing: 8) {
+                TextField("6", text: $amount)
+                    .focused($focused)
+                    .keyboardType(.numberPad)
+                    .font(.system(size: 17, weight: .semibold)).monospacedDigit()
+                    .multilineTextAlignment(.center)
+                    .frame(width: 72).frame(minHeight: 46)
+                    .background(Color.surface, in: RoundedRectangle(cornerRadius: Radius.md, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: Radius.md, style: .continuous)
+                            .strokeBorder(error != nil ? Color.expense : (focused ? Color.accentBorder : Color.borderControl), lineWidth: focused || error != nil ? 1.5 : 1)
+                    )
+                    .accessibilityLabel("\(label): número")
+                BSegmented(options: TimeUnit.allCases.map { ($0, $0.label) }, selection: $unit)
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("\(label): unidad")
+            }
+            if let error { Text(error).bFootnote(.expense).padding(.leading, 4) }
+        }
+    }
+}
+
 /// Importe grande en euros. El texto es libre ("48,90"); se convierte con Money.parse al guardar.
 struct BAmountField: View {
     let label: String

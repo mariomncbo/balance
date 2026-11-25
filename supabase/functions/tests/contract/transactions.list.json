@@ -2,51 +2,51 @@
   "data": {
     "items": [
       {
-        "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
+        "accountId": "01a21497-9905-7088-90d3-558f091df9bd",
         "amount": -2500,
         "concept": "Aportación a PS5",
         "category": "otros",
         "date": "2026-11-24",
         "source": "manual",
         "transfer": {
-          "id": "01a2127b-bd1b-7ae7-913c-791209ec086e",
-          "goalId": "01a2127b-bd1b-7ade-9d26-ddd5505e5b68",
-          "contributionId": "01a2127b-bd1b-771f-b29c-140989ce58f0"
+          "id": "01a21497-990f-710b-9100-c403d17e7dff",
+          "goalId": "01a21497-990f-7b32-8e99-bf1329058f6c",
+          "contributionId": "01a21497-990f-7b71-8e82-1e967288fa02"
         },
-        "id": "01a2127b-bd1b-72b6-bd1f-38cfce8c0897"
+        "id": "01a21497-990f-7ad8-9c1a-33e1af0dd4f4"
       },
       {
-        "accountId": "01a2127b-bd19-7869-bf34-94dafbc6b2f1",
+        "accountId": "01a21497-990c-73e7-a6df-a099d639e577",
         "amount": 2500,
         "concept": "Aportación a PS5",
         "category": "otros",
         "date": "2026-11-24",
         "source": "manual",
         "transfer": {
-          "id": "01a2127b-bd1b-7ae7-913c-791209ec086e",
-          "goalId": "01a2127b-bd1b-7ade-9d26-ddd5505e5b68",
-          "contributionId": "01a2127b-bd1b-771f-b29c-140989ce58f0"
+          "id": "01a21497-990f-710b-9100-c403d17e7dff",
+          "goalId": "01a21497-990f-7b32-8e99-bf1329058f6c",
+          "contributionId": "01a21497-990f-7b71-8e82-1e967288fa02"
         },
-        "id": "01a2127b-bd1b-7119-92bf-a2b3dfab66e0"
+        "id": "01a21497-990f-7288-bc8e-fb80f3e10e13"
       },
       {
-        "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
+        "accountId": "01a21497-9905-7088-90d3-558f091df9bd",
         "amount": -4890,
         "concept": "Mercadona",
         "category": "comida",
         "date": "2026-11-24",
         "source": "atajo",
         "note": "Compra semanal",
-        "id": "01a2127b-bd19-7a9c-846d-03e746941d96"
+        "id": "01a21497-990c-74c7-b54f-a51d262cf02a"
       },
       {
-        "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
+        "accountId": "01a21497-9905-7088-90d3-558f091df9bd",
         "amount": -5500,
         "concept": "Gasolina",
         "category": "transporte",
         "date": "2026-11-20",
         "source": "manual",
-        "id": "01a2127b-bd19-7ea8-bd9e-5a0c7af7d597"
+        "id": "01a21497-990c-7245-9593-a0de68d4dde0"
       },
       {
         "accountId": null,
@@ -55,8 +55,8 @@
         "category": "transporte",
         "date": "2026-11-15",
         "source": "fijo",
-        "recurringId": "01a2127b-bd1b-79b8-a5a5-10475a8faebd",
-        "id": "01a2127b-bd1d-7029-9332-30f506b4d05a"
+        "recurringId": "01a21497-990e-719f-b464-6ecda7b289c6",
+        "id": "d35ace1b-d1e4-504e-a066-ca0a9924974b"
       },
       {
         "accountId": null,
@@ -65,27 +65,27 @@
         "category": "otros",
         "date": "2026-11-10",
         "source": "manual",
-        "id": "01a2127b-bd19-7c01-b861-960938482eb8"
+        "id": "01a21497-990c-7032-9f7a-a8df821d5fbe"
       },
       {
-        "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
+        "accountId": "01a21497-9905-7088-90d3-558f091df9bd",
         "amount": -64000,
         "concept": "Hipoteca",
         "category": "hogar",
         "date": "2026-11-05",
         "source": "fijo",
-        "recurringId": "01a2127b-bd1a-72fa-ae62-dc9901073e33",
-        "id": "01a2127b-bd1d-7371-af8e-964caa0752bd"
+        "recurringId": "01a21497-990e-7242-824a-4e9075cee80a",
+        "id": "16f75051-dd46-5423-acab-9578a1507b26"
       },
       {
-        "accountId": "01a2127b-bd13-77d0-b0e0-28997e8ac156",
+        "accountId": "01a21497-9905-7088-90d3-558f091df9bd",
         "amount": 185000,
         "concept": "Nómina",
         "category": "ingresos",
         "date": "2026-11-01",
         "source": "fijo",
-        "recurringId": "01a2127b-bd1a-7789-abd8-eb4e8d112ec6",
-        "id": "01a2127b-bd1c-7f4e-add4-a8630b060b39"
+        "recurringId": "01a21497-990d-7385-9da5-7276db1b38f7",
+        "id": "eb4e9844-c5be-5fc3-b303-ec9c00191b1c"
       }
     ],
     "summary": {

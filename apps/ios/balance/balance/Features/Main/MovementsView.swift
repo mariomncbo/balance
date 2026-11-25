@@ -158,7 +158,7 @@ struct MovementsView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text("Gastos fijos de \(Dates.monthName(fm.month).lowercased())").bEyebrow(.onAccent)
                 Spacer()
-                if fm.expenseCount > 0 { Text("\(fm.paid.count) de \(fm.expenseCount) pagados").bFootnote(.onAccent, weight: .bold) }
+                if fm.expenseCount > 0 { Text("\(fm.paidCount) de \(fm.expenseCount) pagados").bFootnote(.onAccent, weight: .bold) }
             }
             if fm.expenseCount > 0 {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
