@@ -12,10 +12,11 @@ from fontTools.pens.boundsPen import BoundsPen
 FONT, OUT = sys.argv[1], sys.argv[2]
 os.makedirs(OUT, exist_ok=True)
 
+# Paleta azul minimalista (v2): azul marino arriba y verde apagado abajo. Mismos colores que los tokens.
 C = {
-    "violet": "#6538e5", "mint": "#2fd39a", "mint_on_violet": "#6af2bf",
-    "ink": "#1c1830", "white": "#ffffff", "dark": "#14121d",
-    "violet_dark": "#8f7cff", "mint_dark": "#4fe0aa", "grey": "#bdbdbd",
+    "blue": "#1f3f78", "green": "#2f7a59", "green_on_blue": "#a3cdb6",
+    "ink": "#15181d", "white": "#ffffff", "dark": "#111317",
+    "blue_dark": "#8aa3d1", "green_dark": "#6fb08f", "grey": "#bdbdbd",
 }
 
 # ── Símbolo (rejilla 100×100): círculo r=40, mitades separadas 7 y desplazadas ±5 ──
@@ -71,11 +72,11 @@ X0, Y0, X1, Y1 = SYM_BOX
 
 # Símbolo suelto
 for name, (a, b) in {
-    "simbolo": (C["violet"], C["mint"]),
-    "simbolo-oscuro": (C["violet_dark"], C["mint_dark"]),
+    "simbolo": (C["blue"], C["green"]),
+    "simbolo-oscuro": (C["blue_dark"], C["green_dark"]),
     "simbolo-tinta": (C["ink"], C["ink"]),
     "simbolo-blanco": (C["white"], C["white"]),
-    "simbolo-violeta": (C["violet"], C["violet"]),
+    "simbolo-azul": (C["blue"], C["blue"]),
 }.items():
     save(f"balance-{name}.svg", svg(X0 - PAD, Y0 - PAD, X1 - X0 + 2 * PAD, Y1 - Y0 + 2 * PAD, symbol(a, b), 4))
 
@@ -84,7 +85,7 @@ XHEIGHT = 34.0
 BASELINE = 50 + XHEIGHT / 2
 
 # Nombre suelto
-for name, color in {"wordmark-tinta": C["ink"], "wordmark-blanco": C["white"], "wordmark-violeta": C["violet"]}.items():
+for name, color in {"wordmark-tinta": C["ink"], "wordmark-blanco": C["white"], "wordmark-azul": C["blue"]}.items():
     p, w, asc = word("balance", PAD, PAD + 60, XHEIGHT, color)
     save(f"balance-{name}.svg", svg(0, 0, w + 2 * PAD, 60 + 2 * PAD + 10, p, 4))
 
@@ -95,8 +96,8 @@ def horizontal(top, bottom, text_color):
     x0, y0 = X0 - PAD, Y0 - PAD
     return svg(x0, y0, X1 + gap + w + PAD - x0, Y1 + PAD - y0, symbol(top, bottom) + p, 3)
 
-save("balance-logo-horizontal.svg", horizontal(C["violet"], C["mint"], C["ink"]))
-save("balance-logo-horizontal-oscuro.svg", horizontal(C["violet_dark"], C["mint_dark"], C["white"]))
+save("balance-logo-horizontal.svg", horizontal(C["blue"], C["green"], C["ink"]))
+save("balance-logo-horizontal-oscuro.svg", horizontal(C["blue_dark"], C["green_dark"], C["white"]))
 save("balance-logo-horizontal-tinta.svg", horizontal(C["ink"], C["ink"], C["ink"]))
 save("balance-logo-horizontal-blanco.svg", horizontal(C["white"], C["white"], C["white"]))
 
@@ -109,8 +110,8 @@ def vertical(top, bottom, text_color):
     p, _, _ = word("balance", (W - w) / 2, baseline, XHEIGHT * 0.9, text_color)
     return svg(0, Y0 - PAD, W, baseline + 12 + PAD - (Y0 - PAD), symbol(top, bottom, sx, 0) + p, 3)
 
-save("balance-logo-vertical.svg", vertical(C["violet"], C["mint"], C["ink"]))
-save("balance-logo-vertical-oscuro.svg", vertical(C["violet_dark"], C["mint_dark"], C["white"]))
+save("balance-logo-vertical.svg", vertical(C["blue"], C["green"], C["ink"]))
+save("balance-logo-vertical-oscuro.svg", vertical(C["blue_dark"], C["green_dark"], C["white"]))
 
 # Iconos de app (a sangre: iOS, Android y navegadores aplican su máscara)
 def icon(size, bg, top, bottom, scale=0.58, rx=0):
@@ -119,9 +120,9 @@ def icon(size, bg, top, bottom, scale=0.58, rx=0):
     rect = f'<rect width="{size}" height="{size}" rx="{rx}" fill="{bg}"/>' if bg else ""
     return svg(0, 0, size, size, rect + symbol(top, bottom, d, d, s))
 
-save("app-icon.svg", icon(1024, C["violet"], C["white"], C["mint_on_violet"]))
-save("app-icon-oscuro.svg", icon(1024, C["dark"], C["violet_dark"], C["mint_dark"]))
+save("app-icon.svg", icon(1024, C["blue"], C["white"], C["green_on_blue"]))
+save("app-icon-oscuro.svg", icon(1024, C["dark"], C["blue_dark"], C["green_dark"]))
 save("app-icon-tintado.svg", icon(1024, None, C["white"], C["grey"]))
-save("app-icon-maskable.svg", icon(512, C["violet"], C["white"], C["mint_on_violet"], scale=0.48))
-save("favicon.svg", icon(64, C["violet"], C["white"], C["mint_on_violet"], scale=0.72, rx=14))
+save("app-icon-maskable.svg", icon(512, C["blue"], C["white"], C["green_on_blue"], scale=0.48))
+save("favicon.svg", icon(64, C["blue"], C["white"], C["green_on_blue"], scale=0.72, rx=14))
 print("ok", len(os.listdir(OUT)))

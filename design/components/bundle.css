@@ -1,4 +1,4 @@
-/* Balance — componentes (estilo bento, paleta Lavanda). Solo tokens semánticos (tokens.css). */
+/* Balance — componentes (estilo bento, paleta Azul minimalista). Solo tokens semánticos (tokens.css). */
 .b-root { font-family: var(--font-sans); color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; }
 .b-num { font-variant-numeric: tabular-nums; }
 .b-icon { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: none; }

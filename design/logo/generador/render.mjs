@@ -36,7 +36,7 @@ const cell = (f, x, y, w, h, bg) => {
   const dx = x + (w - vw * s) / 2 - vx * s, dy = y + (h - vh * s) / 2 - vy * s;
   return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="24" fill="${bg}"/><g transform="translate(${dx} ${dy}) scale(${s})">${inner(f)}</g>`;
 };
-const L = "#f2f1fb", D = "#14121d", V = "#6538e5";
+const L = "#f5f6f8", D = "#111317", V = "#1f3f78";
 let b = "";
 b += cell("balance-logo-horizontal.svg", 20, 20, 700, 220, L);
 b += cell("balance-logo-horizontal-oscuro.svg", 740, 20, 700, 220, D);
@@ -52,7 +52,7 @@ b += cell("balance-wordmark-tinta.svg", 740, 500, 340, 140, L);
 b += cell("balance-logo-horizontal-blanco.svg", 1100, 500, 340, 140, V);
 b += cell("favicon.svg", 740, 660, 140, 140, "#ffffff");
 b += cell("app-icon-tintado.svg", 900, 660, 140, 140, "#3a3a3c");
-const sheet = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1460 820" width="1460" height="820"><rect width="1460" height="820" fill="#dcdaed"/>${b}</svg>`;
+const sheet = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1460 820" width="1460" height="820"><rect width="1460" height="820" fill="#e1e4e9"/>${b}</svg>`;
 png(sheet, 1460, "_hoja.png");
 // Favicon ampliado para ver cómo se lee a 16 px
 const f16 = new Resvg(read("favicon.svg"), { fitTo: { mode: "width", value: 16 } }).render();
