@@ -21,7 +21,7 @@ final class BalanceUITests: XCTestCase {
         let app = launch()
         XCTAssertTrue(app.buttons["Movimientos"].waitForExistence(timeout: 5))
         app.buttons["Movimientos"].tap()
-        XCTAssertTrue(app.staticTexts["Gastado en noviembre"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Próximos pagos"].waitForExistence(timeout: 5))
         app.buttons["Metas"].tap()
         XCTAssertTrue(app.staticTexts["Para cumplir todas tus metas"].waitForExistence(timeout: 5))
         app.buttons["Principal"].tap()

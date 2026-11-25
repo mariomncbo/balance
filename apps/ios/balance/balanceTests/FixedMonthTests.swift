@@ -57,16 +57,22 @@ struct FixedMonthTests {
         #expect(fm.monthlyIncome == 0 && fm.freeAfterFixed == nil, "la paga anual no cuenta como ingreso del mes")
     }
 
-    @Test func rowsListEveryExpensePendingFirst() {
-        let rec = [fixed("hipoteca", .loan, 64000, day: 5, next: "2026-12-05", loanPending: 100),
+    @Test func expensesNotDueThisMonthGoBelowInGrey() {
+        let rec = [fixed("gimnasio", .expense, 3990, day: 5, next: "2026-12-05"),          // creado hoy con día ya pasado: empieza en diciembre
+                   fixed("hipoteca", .loan, 64000, day: 3, next: "2026-12-03", loanPending: 100), // pagado este mes
                    fixed("coche", .loan, 15000, day: 9, next: nil, loanPending: 0),
-                   fixed("netflix", .expense, 1299, day: 24, next: "2026-11-24"),
+                   fixed("luz", .expense, 5800, day: 20, next: "2026-11-20"),
                    fixed("nomina", .income, 185000, day: 1, next: "2026-12-01")]
-        let fm = FixedMonth(recurring: rec, transactions: [tx("hipoteca", -64000, "2026-11-05"), tx("nomina", 185000, "2026-11-01")], today: today)
-        let rows = fm.expenseRows(rec)
-        #expect(rows.map(\.fixed.id) == ["netflix", "hipoteca", "coche"])
-        #expect(rows.map(\.label) == ["En 6 días · día 24", "Pagado · próximo 5 dic", "Terminado"])
-        #expect(FixedMonth.incomeLabel(fm.incomes[0]) == "Cobrada 1 nov · próxima 1 dic")
+        let fm = FixedMonth(recurring: rec, transactions: [tx("hipoteca", -64000, "2026-11-03")], today: today)
+        #expect(fm.pending.map(\.fixed.id) == ["luz"])
+        #expect(fm.later.map(\.id) == ["hipoteca", "gimnasio", "coche"], "todos los gastos fijos se ven; la nómina no")
+        #expect(fm.later.map(FixedMonth.laterLabel) == ["3 dic", "5 dic", "Terminado"])
+    }
+
+    @Test func incomeLabel() {
+        let fm = FixedMonth(recurring: [fixed("nomina", .income, 185000, day: 1, next: "2026-12-01")],
+                            transactions: [tx("nomina", 185000, "2026-11-01")], today: today)
+        #expect(FixedMonth.incomeLabel(fm.incomes[0]) == "Día 1 · cobrada el 1 nov · próxima el 1 dic")
     }
 
     @Test func labels() {

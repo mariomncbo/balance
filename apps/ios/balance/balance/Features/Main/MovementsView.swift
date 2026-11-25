@@ -72,7 +72,7 @@ struct MovementsView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Gastado en \(Dates.monthName(s.month).lowercased())").bFootnote()
+                    Text("Gastado").bFootnote()
                     Text(Money.format(-s.expense)).bMoney(size: 15)
                 }
                 .miniTile()
@@ -100,7 +100,7 @@ struct MovementsView: View {
     }
 
     @ViewBuilder private var fixedSection: some View {
-        if let fm = fixedMonth, let all = fixed.data {
+        if let fm = fixedMonth {
             if fm.isEmpty {
                 BTile(style: .soft, padding: 18, spacing: 10) {
                     Text("Gastos fijos").bEyebrow(.accentText)
@@ -109,18 +109,22 @@ struct MovementsView: View {
                 }
             } else {
                 if fm.expenseCount > 0 || fm.nextAfterMonth != nil { fixedHero(fm) }
-                let rows = fm.expenseRows(all)
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text(fm.pending.isEmpty ? "Gastos fijos" : "Próximos pagos").bEyebrow().padding(.leading, 4).accessibilityAddTraits(.isHeader)
+                        Text("Próximos pagos").bEyebrow().padding(.leading, 4).accessibilityAddTraits(.isHeader)
                         Spacer()
                         Button("+ Añadir fijo") { app.sheet = .recurring(id: nil) }.bFootnote(.accentText, weight: .bold)
                     }
-                    if !rows.isEmpty {
+                    if !fm.pending.isEmpty || !fm.later.isEmpty {
                         BList {
-                            ForEach(Array(rows.enumerated()), id: \.element.fixed.id) { i, row in
+                            ForEach(Array(fm.pending.enumerated()), id: \.element.fixed.id) { i, p in
                                 if i > 0 { BRowDivider() }
-                                FixedRow(r: row.fixed, subtitle: row.label, highlight: row.pending) { app.sheet = .recurring(id: row.fixed.id) }
+                                FixedRow(r: p.fixed, subtitle: FixedMonth.whenLabel(p), highlight: true) { app.sheet = .recurring(id: p.fixed.id) }
+                            }
+                            // Los que no tocan este mes, en gris con su próxima fecha
+                            ForEach(Array(fm.later.enumerated()), id: \.element.id) { i, r in
+                                if i > 0 || !fm.pending.isEmpty { BRowDivider() }
+                                FixedRow(r: r, subtitle: FixedMonth.laterLabel(r), highlight: false) { app.sheet = .recurring(id: r.id) }
                             }
                         }
                     }
@@ -195,7 +199,7 @@ struct FixedRow: View {
 
     var body: some View {
         let income = r.kind == .income
-        let amount = Money.format(income ? r.amount : -r.amount, signed: true, round: r.amount % 100 == 0)
+        let amount = Money.format(income ? r.amount : -r.amount, signed: true)
         Button(action: onOpen) {
             HStack(spacing: 12) {
                 BAvatar(symbol: income ? "arrow.down" : (r.kind == .loan ? "building.columns" : r.category.symbol),
@@ -203,18 +207,11 @@ struct FixedRow: View {
                 VStack(alignment: .leading, spacing: 0) {
                     Text(r.concept).bTitle().lineLimit(1)
                     Text(subtitle).bFootnote(highlight ? .warning : .textSecondary, weight: highlight ? .bold : .regular).lineLimit(2)
-                    if r.kind == .loan, let p = r.progress, let l = r.loan, l.pending > 0 {
-                        HStack(spacing: 8) {
-                            BProgress(value: p, loan: true, height: 6)
-                            Text("quedan \(Money.format(l.pending, round: true))").bFootnote().fixedSize()
-                        }
-                        .padding(.top, 4)
-                    }
                 }
                 Spacer(minLength: 8)
                 Text(amount).bMoney(income ? .income : .text)
             }
-            .padding(.horizontal, Space.s4).padding(.vertical, Space.s3).frame(minHeight: 64)
+            .padding(.horizontal, Space.s4).padding(.vertical, 10).frame(minHeight: 60)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

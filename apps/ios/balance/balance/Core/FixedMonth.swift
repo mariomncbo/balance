@@ -13,6 +13,8 @@ struct FixedMonth: Equatable {
     let incomes: [Income]
     /// El próximo pago fijo si este mes ya está todo pagado.
     let nextAfterMonth: Pending?
+    /// Los demás gastos fijos (ya pagados este mes o que empiezan más adelante), con su próxima fecha. Van en gris debajo de los pendientes.
+    let later: [Recurring]
 
     var paidTotal: Int { paid.reduce(0) { $0 + $1.amount } }
     var pendingTotal: Int { pending.reduce(0) { $0 + $1.fixed.amount } }
@@ -42,7 +44,7 @@ struct FixedMonth: Equatable {
             }
             guard let next = r.nextDate, next >= today else { continue }
             if let loan = r.loan, loan.pending <= 0 { continue }
-            if next == lastPosted { continue } // el de hoy ya se apuntó
+            if next == lastPosted { continue } // el de hoy ya se apuntó (su próxima fecha la da el servidor)
             let item = Pending(fixed: r, date: next, daysLeft: Dates.daysBetween(today, next))
             if Dates.monthOf(next) == month { pending.append(item) } else { upcoming.append(item) }
         }
@@ -50,26 +52,20 @@ struct FixedMonth: Equatable {
         self.pending = pending.sorted { $0.date < $1.date }
         self.incomes = incomes.sorted { ($0.next ?? "9") < ($1.next ?? "9") }
         self.nextAfterMonth = pending.isEmpty ? upcoming.min { $0.date < $1.date } : nil
+        let pendingIds = Set(pending.map(\.fixed.id))
+        self.later = recurring.filter { $0.kind != .income && !pendingIds.contains($0.id) }
+            .sorted { ($0.nextDate ?? "9") < ($1.nextDate ?? "9") }
     }
 
-    /// Una fila por gasto fijo o préstamo: primero los pendientes de este mes y luego el resto por fecha.
-    struct Row: Equatable { let fixed: Recurring; let label: String; let pending: Bool }
-    func expenseRows(_ recurring: [Recurring]) -> [Row] {
-        let pendingIds = Dictionary(pending.map { ($0.fixed.id, $0) }, uniquingKeysWith: { a, _ in a })
-        let paidIds = Set(paid.map(\.fixed.id))
-        return recurring.filter { $0.kind != .income }.map { r in
-            if let p = pendingIds[r.id] { return Row(fixed: r, label: Self.whenLabel(p), pending: true) }
-            if let l = r.loan, l.pending <= 0 { return Row(fixed: r, label: "Terminado", pending: false) }
-            let next = r.nextDate.map { "próximo \(Self.shortDate($0))" }
-            let parts = [paidIds.contains(r.id) ? "Pagado" : "Día \(r.day)", next].compactMap { $0 }
-            return Row(fixed: r, label: parts.joined(separator: " · ").capitalizedFirst, pending: false)
-        }
-        .sorted { a, b in a.pending != b.pending ? a.pending : (a.fixed.nextDate ?? "9") < (b.fixed.nextDate ?? "9") }
+    /// Texto en gris de un fijo que no toca este mes: "5 dic", o "Terminado" si es un préstamo ya pagado.
+    static func laterLabel(_ r: Recurring) -> String {
+        if let l = r.loan, l.pending <= 0 { return "Terminado" }
+        return r.nextDate.map(shortDate) ?? "Día \(r.day)"
     }
 
-    /// "Cobrada 1 nov · próxima 1 dic".
+    /// "Día 1 · cobrada el 1 nov · próxima el 1 dic".
     static func incomeLabel(_ i: Income) -> String {
-        [i.received.map { "Cobrada \(shortDate($0))" }, i.next.map { "\(i.received == nil ? "Próxima" : "próxima") \(shortDate($0))" }].compactMap { $0 }.joined(separator: " · ")
+        ["Día \(i.fixed.day)", i.received.map { "cobrada el \(shortDate($0))" }, i.next.map { "próxima el \(shortDate($0))" }].compactMap { $0 }.joined(separator: " · ")
     }
 
     static func shortDate(_ s: String) -> String { "\(Dates.parse(s).d) \(Dates.monthShort(Dates.monthOf(s)))" }
