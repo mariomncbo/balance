@@ -11,6 +11,8 @@ struct MovementsView: View {
     @State private var category: Category?
     @State private var list = Resource<TransactionList>()
     @State private var fixed = Resource<[Recurring]>()
+    /// El mes entero sin filtros: de aquí sale qué fijos ya se han pagado.
+    @State private var month = Resource<TransactionList>()
 
     private var params: [String: AnyJSON] {
         var p: [String: AnyJSON] = ["period": .string(period.rawValue)]
@@ -22,6 +24,7 @@ struct MovementsView: View {
     var body: some View {
         BScreen(spacing: 12, tabs: true) {
             TabHeader(title: "Movimientos")
+            fixedSection
             HStack(spacing: 8) {
                 HStack(spacing: 8) {
                     Image(systemName: "magnifyingglass").foregroundStyle(Color.textSecondary)
@@ -31,10 +34,10 @@ struct MovementsView: View {
                 .accessibilityElement(children: .contain)
                 BSegmented(options: [(Period.day, "Día"), (.week, "Sem."), (.month, "Mes")], selection: $period).frame(width: 168)
             }
+            .padding(.top, 4)
             if list.loading && list.data == nil { BLoadingTiles() }
             if let e = list.error, list.data == nil { BErrorState(error: e) { app.invalidate() } }
             if let s = list.data?.summary { summary(s) }
-            fixedSection
             if let d = list.data {
                 if d.items.isEmpty {
                     if !debounced.isEmpty || category != nil {
@@ -60,89 +63,171 @@ struct MovementsView: View {
     private func reload(force: Bool = false) async {
         async let a: () = list.load("transactions.list", params, force: force)
         async let b: () = fixed.load("recurring.list", force: force)
-        _ = await (a, b)
+        async let c: () = month.load("transactions.list", ["period": .string("month")], force: force)
+        _ = await (a, b, c)
     }
 
+    /// Fila de fichas pequeñas: lo gastado y las categorías principales (pulsar una filtra la lista).
     private func summary(_ s: MonthSummary) -> some View {
-        VStack(spacing: 10) {
-            BTile(padding: 16, spacing: 0) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("Gastado en \(Dates.monthName(s.month).lowercased())").bEyebrow()
-                        Text(Money.format(-s.expense)).bBig(26)
-                    }
-                    Spacer()
-                    if let v = s.vsPrevious, v != 0 {
-                        BPill(text: "\(Money.format(abs(v), round: true)) \(v > 0 ? "menos" : "más")", style: v > 0 ? .income : .expense)
-                    }
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Gastado en \(Dates.monthName(s.month).lowercased())").bFootnote()
+                    Text(Money.format(-s.expense)).bMoney(size: 15)
                 }
-            }
-            let cats = Array(s.byCategory.prefix(4))
-            Grid(horizontalSpacing: 10, verticalSpacing: 10) {
-                ForEach(Array(stride(from: 0, to: cats.count, by: 2)), id: \.self) { i in
-                    GridRow {
-                        categoryTile(cats[i])
-                        if i + 1 < cats.count { categoryTile(cats[i + 1]) } else { Color.clear }
+                .miniTile()
+                .accessibilityElement(children: .combine)
+                ForEach(s.byCategory) { c in
+                    Button { category = category == c.category ? nil : c.category } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(c.label) · \(c.share) %").bFootnote()
+                            Text(Money.format(-c.amount)).bMoney(size: 15)
+                        }
+                        .miniTile(selected: category == c.category)
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Filtrar por \(c.label): \(Money.format(-c.amount)), \(c.share) %")
+                    .accessibilityAddTraits(category == c.category ? .isSelected : [])
                 }
             }
         }
+        .scrollClipDisabled()
     }
 
-    private func categoryTile(_ c: CategoryShare) -> some View {
-        Button { category = category == c.category ? nil : c.category } label: {
-            BTile(padding: 14, spacing: 6) {
-                HStack { Text(c.label).bSubhead(weight: .bold); Spacer(); Text("\(c.share) %").bFootnote() }
-                Text(Money.format(-c.amount)).bMoney()
-                BProgress(value: c.share, loan: true, height: 6)
-            }
-            .overlay(RoundedRectangle(cornerRadius: Radius.lg, style: .continuous).strokeBorder(Color.accentBorder, lineWidth: category == c.category ? 2 : 0))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("Filtrar por \(c.label): \(Money.format(-c.amount)), \(c.share) %")
-        .accessibilityAddTraits(category == c.category ? .isSelected : [])
+    private var fixedMonth: FixedMonth? {
+        guard let r = fixed.data else { return nil }
+        return FixedMonth(recurring: r, transactions: month.data?.items ?? [], today: Dates.todayMadrid())
     }
 
     @ViewBuilder private var fixedSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Fijos").bEyebrow().padding(.leading, 4).accessibilityAddTraits(.isHeader)
-                Spacer()
-                Button("Añadir") { app.sheet = .recurring(id: nil) }.bFootnote(.accentText, weight: .bold)
+        if let fm = fixedMonth, let all = fixed.data {
+            if fm.isEmpty {
+                BTile(style: .soft, padding: 18, spacing: 10) {
+                    Text("Gastos fijos").bEyebrow(.accentText)
+                    Text("Tu sueldo, el alquiler, las suscripciones… Añádelos y se apuntarán solos cada mes.").bSubhead()
+                    Button("Añadir fijo") { app.sheet = .recurring(id: nil) }.buttonStyle(.b(.primary, block: false))
+                }
+            } else {
+                if fm.expenseCount > 0 || fm.nextAfterMonth != nil { fixedHero(fm) }
+                let rows = fm.expenseRows(all)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Text(fm.pending.isEmpty ? "Gastos fijos" : "Próximos pagos").bEyebrow().padding(.leading, 4).accessibilityAddTraits(.isHeader)
+                        Spacer()
+                        Button("+ Añadir fijo") { app.sheet = .recurring(id: nil) }.bFootnote(.accentText, weight: .bold)
+                    }
+                    if !rows.isEmpty {
+                        BList {
+                            ForEach(Array(rows.enumerated()), id: \.element.fixed.id) { i, row in
+                                if i > 0 { BRowDivider() }
+                                FixedRow(r: row.fixed, subtitle: row.label, highlight: row.pending) { app.sheet = .recurring(id: row.fixed.id) }
+                            }
+                        }
+                    }
+                }
+                if !fm.incomes.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Ingresos fijos").bEyebrow().padding(.leading, 4).accessibilityAddTraits(.isHeader)
+                            Spacer()
+                            if fm.monthlyIncome > 0 {
+                                Text("\(Money.format(fm.monthlyIncome, signed: true, round: fm.monthlyIncome % 100 == 0))/mes").bFootnote(.income, weight: .bold).monospacedDigit()
+                            }
+                        }
+                        BList {
+                            ForEach(Array(fm.incomes.enumerated()), id: \.element.fixed.id) { i, inc in
+                                if i > 0 { BRowDivider() }
+                                FixedRow(r: inc.fixed, subtitle: FixedMonth.incomeLabel(inc), highlight: false) { app.sheet = .recurring(id: inc.fixed.id) }
+                            }
+                        }
+                    }
+                }
             }
-            if let f = fixed.data, !f.isEmpty {
-                FlowLayout(spacing: 8) { ForEach(f) { r in FixedTag(r: r) { app.sheet = .recurring(id: r.id) } } }
-            } else if !fixed.loading {
-                Text("Tu sueldo, el alquiler, las suscripciones… Añádelos y se apuntarán solos.").bSub()
-            }
+        } else if fixed.loading {
+            BLoadingTiles()
         }
+    }
+
+    /// Ficha azul: cuánto llevas pagado de los gastos fijos del mes.
+    private func fixedHero(_ fm: FixedMonth) -> some View {
+        BTile(style: .accent, padding: 18, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Gastos fijos de \(Dates.monthName(fm.month).lowercased())").bEyebrow(.onAccent)
+                Spacer()
+                if fm.expenseCount > 0 { Text("\(fm.paid.count) de \(fm.expenseCount) pagados").bFootnote(.onAccent, weight: .bold) }
+            }
+            if fm.expenseCount > 0 {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(Money.format(fm.paidTotal)).bBig(30, color: .onAccent)
+                    Text("de \(Money.format(fm.monthTotal)) al mes").bSubhead(.onAccent, weight: .semibold).opacity(0.85)
+                }
+                .lineLimit(1).minimumScaleFactor(0.7)
+                GeometryReader { g in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Color.accentHover)
+                        Capsule().fill(Color.onAccent).frame(width: g.size.width * CGFloat(fm.progress) / 100)
+                    }
+                }
+                .frame(height: 8)
+                .accessibilityHidden(true)
+            }
+            HStack {
+                if !fm.pending.isEmpty {
+                    Text("Quedan \(Money.format(fm.pendingTotal)) por pagar")
+                } else if let n = fm.nextAfterMonth {
+                    Text("Todo pagado. Próximo: \(n.fixed.concept), el \(FixedMonth.shortDate(n.date))")
+                }
+                Spacer(minLength: 8)
+                if let free = fm.freeAfterFixed { Text("Libre tras fijos: \(Money.format(free, round: true))") }
+            }
+            .bFootnote(.onAccent, weight: .semibold).monospacedDigit()
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 
-struct FixedTag: View {
+/// Fila de un fijo (gasto, préstamo o ingreso). Al pulsarla se edita.
+struct FixedRow: View {
     let r: Recurring
+    let subtitle: String
+    var highlight = false
     let onOpen: () -> Void
 
     var body: some View {
-        let amount = Money.format(r.kind == .income ? r.amount : -r.amount, signed: true, round: r.amount % 100 == 0)
-        let meta = r.kind == .loan && r.loan != nil
-            ? "Día \(r.day) · quedan \(Money.format(r.loan!.pending, round: true))"
-            : "Día \(r.day) · \(r.frequency.unit == "year" ? "anual" : "mensual")"
-        let (bg, fg): (Color, Color) = switch r.kind { case .income: (.incomeSubtle, .income); case .expense: (.expenseSubtle, .expense); case .loan: (.surface, .text) }
+        let income = r.kind == .income
+        let amount = Money.format(income ? r.amount : -r.amount, signed: true, round: r.amount % 100 == 0)
         Button(action: onOpen) {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(r.concept).font(.system(size: 15, weight: .bold))
-                    Text(amount).font(.system(size: 15)).monospacedDigit()
+            HStack(spacing: 12) {
+                BAvatar(symbol: income ? "arrow.down" : (r.kind == .loan ? "building.columns" : r.category.symbol),
+                        style: income ? .income : (highlight ? .warning : .neutral))
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(r.concept).bTitle().lineLimit(1)
+                    Text(subtitle).bFootnote(highlight ? .warning : .textSecondary, weight: highlight ? .bold : .regular).lineLimit(2)
+                    if r.kind == .loan, let p = r.progress, let l = r.loan, l.pending > 0 {
+                        HStack(spacing: 8) {
+                            BProgress(value: p, loan: true, height: 6)
+                            Text("quedan \(Money.format(l.pending, round: true))").bFootnote().fixedSize()
+                        }
+                        .padding(.top, 4)
+                    }
                 }
-                Text(meta).font(.system(size: 13)).foregroundStyle(r.kind == .loan ? Color.textSecondary : fg)
-                if r.kind == .loan, let p = r.progress { BProgress(value: p, loan: true, height: 6).padding(.top, 4) }
+                Spacer(minLength: 8)
+                Text(amount).bMoney(income ? .income : .text)
             }
-            .foregroundStyle(fg)
-            .padding(.horizontal, 14).padding(.vertical, 10)
-            .background(bg, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .padding(.horizontal, Space.s4).padding(.vertical, Space.s3).frame(minHeight: 64)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(r.concept), \(amount). Editar")
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(r.concept), \(amount), \(subtitle)")
+        .accessibilityHint("Editar")
+    }
+}
+
+private extension View {
+    func miniTile(selected: Bool = false) -> some View {
+        padding(.horizontal, 12).padding(.vertical, 10)
+            .background(Color.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).strokeBorder(Color.accentBorder, lineWidth: selected ? 2 : 0))
     }
 }

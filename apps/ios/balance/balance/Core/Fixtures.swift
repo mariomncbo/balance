@@ -13,13 +13,13 @@ enum Fixtures {
 
     /// Ordenados como los devuelve el servidor: de más reciente a más antiguo.
     private static let tx: [String] = [
-        #"{"id":"t2","accountId":"a1","amount":-1299,"concept":"Netflix","category":"suscripciones","date":"2026-11-24","source":"fijo"}"#,
+        #"{"id":"t2","accountId":"a1","amount":-1299,"concept":"Netflix","category":"suscripciones","date":"2026-11-24","source":"fijo","recurringId":"r1"}"#,
         #"{"id":"t1","accountId":"a1","amount":-4890,"concept":"Mercadona","category":"comida","date":"2026-11-24","source":"atajo"}"#,
         #"{"id":"t7","accountId":"a2","amount":5000,"concept":"Aportación a PS5","category":"otros","date":"2026-11-20","source":"manual","transfer":{"id":"tr-c1","goalId":"g1","contributionId":"c1"}}"#,
         #"{"id":"t6","accountId":"a1","amount":-5000,"concept":"Aportación a PS5","category":"otros","date":"2026-11-20","source":"manual","transfer":{"id":"tr-c1","goalId":"g1","contributionId":"c1"}}"#,
         #"{"id":"t3","accountId":"a1","amount":-5500,"concept":"Gasolina","category":"transporte","date":"2026-11-20","source":"manual"}"#,
-        #"{"id":"t5","accountId":"a2","amount":-70299,"concept":"Hipoteca","category":"hogar","date":"2026-11-05","source":"fijo","note":"Cuota de noviembre"}"#,
-        #"{"id":"t4","accountId":"a1","amount":185000,"concept":"Nómina","category":"ingresos","date":"2026-11-01","source":"fijo"}"#,
+        #"{"id":"t5","accountId":"a2","amount":-70299,"concept":"Hipoteca","category":"hogar","date":"2026-11-05","source":"fijo","note":"Cuota de noviembre","recurringId":"r3"}"#,
+        #"{"id":"t4","accountId":"a1","amount":185000,"concept":"Nómina","category":"ingresos","date":"2026-11-01","source":"fijo","recurringId":"r2"}"#,
     ]
 
     private static let summary = #"{"month":"2026-11","income":185000,"expense":124060,"saved":60940,"savedShare":33,"pending":1299,"byCategory":[{"category":"hogar","label":"Hogar","amount":70299,"share":57},{"category":"comida","label":"Comida","amount":31245,"share":25},{"category":"transporte","label":"Transporte","amount":12800,"share":10},{"category":"ocio","label":"Ocio","amount":9716,"share":8}],"previousExpense":133690,"vsPrevious":9630}"#
@@ -61,14 +61,14 @@ enum Fixtures {
         case "home":
             body = empty
                 ? #"{"today":"\#(today)","balances":{"total":0,"accounts":[]},"month":\#(summary),"lastDays":{"days":[],"total":0},"nextPayment":null,"topGoal":null,"latest":[]}"#
-                : #"{"today":"\#(today)","balances":\#(balances),"month":\#(summary),"lastDays":{"days":[{"date":"2026-11-18","expense":0},{"date":"2026-11-19","expense":1250},{"date":"2026-11-20","expense":5500},{"date":"2026-11-21","expense":2300},{"date":"2026-11-22","expense":0},{"date":"2026-11-23","expense":8120},{"date":"2026-11-24","expense":6189}],"total":23359},"nextPayment":{"id":"r1","concept":"Netflix","amount":1299,"date":"2026-11-25"},"topGoal":\#(goal),"latest":[\#(tx[0]),\#(tx[1]),\#(tx[2]),\#(tx.first { $0.contains("\"t4\"") } ?? tx[3])]}"#
+                : #"{"today":"\#(today)","balances":\#(balances),"month":\#(summary),"lastDays":{"days":[{"date":"2026-11-18","expense":0},{"date":"2026-11-19","expense":1250},{"date":"2026-11-20","expense":5500},{"date":"2026-11-21","expense":2300},{"date":"2026-11-22","expense":0},{"date":"2026-11-23","expense":8120},{"date":"2026-11-24","expense":6189}],"total":23359},"nextPayment":{"id":"r4","concept":"Luz","amount":5800,"date":"2026-11-28"},"topGoal":\#(goal),"latest":[\#(tx[0]),\#(tx[1]),\#(tx[2]),\#(tx.first { $0.contains("\"t4\"") } ?? tx[3])]}"#
         case "accounts.list": body = balances
         case "transactions.list": body = #"{"items":[\#(tx.joined(separator: ","))],"summary":\#(summary)}"#
         case "transactions.get":
             let id = params["id"] as? String
             body = tx.first { $0.contains("\"id\":\"\(id ?? "t1")\"") } ?? tx[0]
         case "recurring.list":
-            body = #"[{"id":"r1","kind":"expense","amount":1299,"concept":"Netflix","category":"suscripciones","accountId":"a1","day":25,"frequency":{"unit":"month","every":1},"startDate":"2026-01-25","loan":null,"nextDate":"2026-11-25","progress":null},{"id":"r2","kind":"income","amount":185000,"concept":"Nómina","category":"ingresos","accountId":"a1","day":1,"frequency":{"unit":"month","every":1},"startDate":"2026-01-01","loan":null,"nextDate":"2026-12-01","progress":null},{"id":"r3","kind":"loan","amount":64000,"concept":"Hipoteca","category":"hogar","accountId":"a1","day":5,"frequency":{"unit":"month","every":1},"startDate":"2016-06-05","loan":{"pending":9840000,"endMonth":"2041-06","principal":15870968},"nextDate":"2026-12-05","progress":38}]"#
+            body = #"[{"id":"r1","kind":"expense","amount":1299,"concept":"Netflix","category":"suscripciones","accountId":"a1","day":24,"frequency":{"unit":"month","every":1},"startDate":"2026-01-24","loan":null,"nextDate":"2026-12-24","progress":null},{"id":"r4","kind":"expense","amount":5800,"concept":"Luz","category":"hogar","accountId":"a1","day":28,"frequency":{"unit":"month","every":1},"startDate":"2026-01-28","loan":null,"nextDate":"2026-11-28","progress":null},{"id":"r2","kind":"income","amount":185000,"concept":"Nómina","category":"ingresos","accountId":"a1","day":1,"frequency":{"unit":"month","every":1},"startDate":"2026-01-01","loan":null,"nextDate":"2026-12-01","progress":null},{"id":"r3","kind":"loan","amount":64000,"concept":"Hipoteca","category":"hogar","accountId":"a1","day":5,"frequency":{"unit":"month","every":1},"startDate":"2016-06-05","loan":{"pending":9840000,"endMonth":"2041-06","principal":15870968},"nextDate":"2026-12-05","progress":38}]"#
         case "goals.list":
             body = empty ? #"{"goals":[],"monthlyTotal":0,"saved":0,"target":0}"#
                 : #"{"goals":[\#(goal),{"id":"g2","name":"Viaje a Japón","target":300000,"saved":90000,"remaining":210000,"months":4,"monthly":52500,"deadline":"2027-03","progress":30,"behind":true,"done":false,"accountId":null,"contributions":[]},{"id":"g3","name":"Fondo de emergencia","target":600000,"saved":210000,"remaining":390000,"months":39,"monthly":10000,"deadline":"2030-03","progress":35,"behind":false,"done":false,"accountId":null,"contributions":[]}],"monthlyTotal":70200,"saved":\#(goalsSaved),"target":955000}"#

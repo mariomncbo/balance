@@ -33,6 +33,11 @@ enum Dates {
         string(utc.date(byAdding: .day, value: n, to: date(s))!)
     }
 
+    /// Días de `from` a `to` (positivo si `to` es posterior).
+    static func daysBetween(_ from: String, _ to: String) -> Int {
+        utc.dateComponents([.day], from: date(from), to: date(to)).day ?? 0
+    }
+
     static func shiftMonth(_ month: String, _ n: Int) -> String {
         let p = parse("\(month)-01")
         let idx = p.y * 12 + (p.m - 1) + n
