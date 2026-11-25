@@ -21,10 +21,14 @@ struct BScreen<Content: View>: View {
 }
 
 /// Pantalla de formulario / onboarding: contenido arriba y acciones fijas abajo.
+/// El pie sube con el teclado (para que el botón principal siga a mano). Si el pie es solo un enlace secundario
+/// («¿No tienes cuenta?…»), `hidesFooterWithKeyboard` lo oculta mientras se escribe para que no tape el formulario.
 struct BFormScreen<Content: View, Footer: View>: View {
     var spacing: CGFloat = 20
+    var hidesFooterWithKeyboard = false
     @ViewBuilder var content: () -> Content
     @ViewBuilder var footer: () -> Footer
+    @State private var keyboardShown = false
 
     var body: some View {
         ScrollView {
@@ -37,13 +41,18 @@ struct BFormScreen<Content: View, Footer: View>: View {
         .scrollBounceBehavior(.basedOnSize)
         .scrollDismissesKeyboard(.interactively)
         .safeAreaInset(edge: .bottom) {
-            VStack(spacing: 6, content: footer)
-                .padding(.horizontal, Space.s4)
-                .padding(.top, Space.s2)
-                .padding(.bottom, Space.s2)
-                .background(Color.bg)
+            if !(hidesFooterWithKeyboard && keyboardShown) {
+                VStack(spacing: 6, content: footer)
+                    .padding(.horizontal, Space.s4)
+                    .padding(.top, Space.s2)
+                    .padding(.bottom, Space.s2)
+                    .background(Color.bg)
+            }
         }
         .background(Color.bg.ignoresSafeArea())
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in keyboardShown = true }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in keyboardShown = false }
+        .animation(.easeOut(duration: 0.2), value: keyboardShown)
     }
 }
 

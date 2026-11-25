@@ -10,7 +10,7 @@ struct LoginView: View {
     @State private var busy = false
 
     var body: some View {
-        BFormScreen {
+        BFormScreen(hidesFooterWithKeyboard: true) {
             Color.clear.frame(height: 24)
             BTile(style: .accent, padding: 22, spacing: 16) {
                 Image("LogoHorizontalBlanco").resizable().scaledToFit().frame(width: 130).accessibilityLabel("Balance")

@@ -10,7 +10,7 @@ struct SignupView: View {
     @State private var busy = false
 
     var body: some View {
-        BFormScreen {
+        BFormScreen(hidesFooterWithKeyboard: true) {
             HStack(spacing: 12) {
                 BRoundButton(symbol: "chevron.left", label: "Atrás") { dismiss() }
                 Spacer()

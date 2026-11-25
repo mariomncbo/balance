@@ -27,6 +27,22 @@ final class BalanceUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Próximos pagos"].waitForExistence(timeout: 5))
     }
 
+    /// En Iniciar sesión y Crear cuenta, el enlace del pie no debe tapar el formulario mientras se escribe.
+    func testAuthFooterLinkHidesWithKeyboard() throws {
+        for (screen, linkLabel, field) in [("login", "¿No tienes cuenta? Crear cuenta", "Nombre de usuario"),
+                                           ("signup", "¿Ya tienes cuenta? Iniciar sesión", "Nombre")] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-fx.screen", screen]
+            app.launch()
+            let link = app.buttons[linkLabel]
+            XCTAssertTrue(link.waitForExistence(timeout: 5), "\(screen): el enlace se ve sin teclado")
+            app.textFields[field].firstMatch.tap()
+            guard app.keyboards.firstMatch.waitForExistence(timeout: 3) else { throw XCTSkip("El simulador usa el teclado físico") }
+            XCTAssertTrue(link.waitForNonExistence(timeout: 3), "\(screen): con el teclado abierto el enlace se oculta")
+            app.terminate()
+        }
+    }
+
     func testTabsNavigate() {
         let app = launch()
         XCTAssertTrue(app.buttons["Movimientos"].waitForExistence(timeout: 5))
