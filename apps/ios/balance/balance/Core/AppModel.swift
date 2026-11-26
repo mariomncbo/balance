@@ -137,6 +137,19 @@ final class AppModel {
         locked = pin.hasPin
     }
 
+    /// Elimina la cuenta en el servidor (con todos sus datos) y deja este iPhone como recién instalado.
+    func deleteAccount(username: String) async throws {
+        try await API.send("account.delete", ["username": .string(username)])
+        try? await supabase.auth.signOut(scope: .local)
+        ResponseCache.clear()
+        ShortcutKeyStore.clear()
+        OnboardingStore.clear()
+        pin.clear()
+        UserDefaults.standard.removeObject(forKey: "home.excludedAccounts")
+        profile = nil
+        locked = false
+    }
+
     func setSession(access: String, refresh: String) async throws {
         try await supabase.auth.setSession(accessToken: access, refreshToken: refresh)
     }

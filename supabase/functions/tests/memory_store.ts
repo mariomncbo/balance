@@ -54,6 +54,26 @@ export class MemoryStore implements Store {
     if (s) s.accountId = accountId;
     return Promise.resolve(Boolean(s));
   }
+
+  profiles = new Map<string, { name: string; username: string }>();
+  getProfile(u: string) {
+    const p = this.profiles.get(u);
+    return Promise.resolve(p ? { username: p.username } : null);
+  }
+  updateProfile(u: string, name: string, username: string) {
+    if ([...this.profiles.entries()].some(([id, p]) => id !== u && p.username === username)) return Promise.resolve(false);
+    this.profiles.set(u, { name, username });
+    return Promise.resolve(true);
+  }
+  deleteUser(u: string, _username: string) {
+    this.profiles.delete(u);
+    this.keys.delete(u);
+    this.shortcuts.delete(u);
+    for (const list of this.tables.values()) {
+      for (let i = list.length - 1; i >= 0; i--) if (list[i].user_id === u) list.splice(i, 1);
+    }
+    return Promise.resolve();
+  }
 }
 
 /** Versión en memoria de public.shortcut_consume (misma lógica que la función SQL). */

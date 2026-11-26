@@ -83,4 +83,24 @@ export class SupabaseStore implements Store {
     fail(error);
     return (data?.length ?? 0) > 0;
   }
+
+  async getProfile(userId: string): Promise<{ username: string } | null> {
+    const { data, error } = await this.db.from("profiles").select("username").eq("id", userId).maybeSingle();
+    fail(error);
+    return data ? { username: data.username } : null;
+  }
+
+  async updateProfile(userId: string, name: string, username: string): Promise<boolean> {
+    const { error } = await this.db.from("profiles").update({ name, username }).eq("id", userId);
+    if (error?.code === "23505") return false; // índice único del nombre de usuario
+    fail(error);
+    return true;
+  }
+
+  async deleteUser(userId: string, username: string): Promise<void> {
+    // El borrado del usuario de Auth arrastra en cascada el perfil y todas las tablas con user_id.
+    const { error } = await this.db.auth.admin.deleteUser(userId);
+    fail(error);
+    await this.db.from("login_attempts").delete().eq("username", username);
+  }
 }

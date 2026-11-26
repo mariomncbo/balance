@@ -6,12 +6,15 @@ struct SettingsView: View {
     @State private var pinOn = false
     @State private var faceOn = false
     @State private var changePin = false
+    @State private var editProfile = false
+    @State private var deleteAccount = false
 
     var body: some View {
         @Bindable var app = appModel
         BScreen(spacing: 14) {
             DetailHeader(title: "Ajustes")
             VStack(spacing: 10) {
+                Button { editProfile = true } label: {
                 BTile(spacing: 0) {
                     HStack(spacing: 14) {
                         Text(String(app.profile?.name.prefix(1) ?? "").uppercased())
@@ -21,8 +24,13 @@ struct SettingsView: View {
                             Text(app.profile?.name ?? " ").font(.system(size: 19, weight: .heavy)).foregroundStyle(Color.text)
                             Text(app.profile.map { "@\($0.username) · \($0.email)" } ?? " ").bSub().lineLimit(1)
                         }
+                        Spacer()
+                        Image(systemName: "chevron.right").foregroundStyle(Color.textSecondary)
                     }
                 }
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint("Edita tu nombre y tu nombre de usuario")
                 BTile(spacing: 10) {
                     Text("Apariencia").bEyebrow().accessibilityAddTraits(.isHeader)
                     HStack(spacing: 8) {
@@ -87,9 +95,12 @@ struct SettingsView: View {
                 }.buttonStyle(.plain)
             }
             Button("Cerrar sesión") { Task { await app.signOut() } }.buttonStyle(.bDangerSecondary).padding(.top, 12)
+            Button("Eliminar cuenta") { deleteAccount = true }.buttonStyle(.bDangerLink).frame(maxWidth: .infinity)
         }
         .toolbar(.hidden, for: .navigationBar)
         .onAppear(perform: refresh)
+        .sheet(isPresented: $editProfile) { ProfileSheet().environment(app) }
+        .sheet(isPresented: $deleteAccount) { DeleteAccountSheet().environment(app) }
         .sheet(isPresented: $changePin, onDismiss: refresh) { CreatePinView().environment(app) }
     }
 

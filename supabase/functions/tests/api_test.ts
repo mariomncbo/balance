@@ -105,3 +105,35 @@ Deno.test("valida la entrada", async () => {
   await assertRejects(() => call(ana, "transactions.create", { amount: -100, concept: "x", category: "comida", date: "2026-13-40" }), ApiError);
   await assertRejects(() => handle("texto", ana), ApiError);
 });
+
+Deno.test("perfil: cambiar nombre y usuario, y no repetir usuario", async () => {
+  const a: Ctx = { userId: "perfil-a", today: "2026-11-23", store, master };
+  const b: Ctx = { userId: "perfil-b", today: "2026-11-23", store, master };
+  store.profiles.set("perfil-a", { name: "A", username: "aaa" });
+  store.profiles.set("perfil-b", { name: "B", username: "bbb" });
+  await call(a, "profile.update", { name: "  Ana ", username: "Ana.G" });
+  assertEquals(store.profiles.get("perfil-a"), { name: "Ana", username: "ana.g" });
+  await assertRejects(() => call(b, "profile.update", { name: "B", username: "ana.g" }), ApiError, "ya está en uso");
+  await assertRejects(() => call(b, "profile.update", { name: "B", username: "x" }), ApiError);
+  await assertRejects(() => call(b, "profile.update", { name: "", username: "bbb" }), ApiError);
+});
+
+Deno.test("eliminar cuenta: exige el nombre de usuario y borra todos los datos", async () => {
+  const u: Ctx = { userId: "borrar", today: "2026-11-23", store, master };
+  const keep: Ctx = { userId: "se-queda", today: "2026-11-23", store, master };
+  store.profiles.set("borrar", { name: "Borrar", username: "borrar.me" });
+  await call(u, "accounts.create", { name: "BBVA", type: "banco", openingBalance: 1000 });
+  await call(u, "shortcut.create");
+  await call(keep, "accounts.create", { name: "Otra", type: "banco", openingBalance: 5 });
+
+  await assertRejects(() => call(u, "account.delete", { username: "otro" }), ApiError, "no coincide");
+  await assertRejects(() => call(u, "account.delete", {}), ApiError);
+  assertEquals((await call(u, "accounts.list")).accounts.length, 1, "un intento fallido no borra nada");
+
+  await call(u, "account.delete", { username: " Borrar.Me " });
+  assertEquals(store.profiles.has("borrar"), false);
+  assertEquals(store.keys.has("borrar"), false);
+  assertEquals(store.shortcuts.has("borrar"), false);
+  assertEquals((await store.list("accounts", "borrar")).length, 0);
+  assertEquals((await call(keep, "accounts.list")).accounts.length, 1, "los datos de otros no se tocan");
+});

@@ -61,6 +61,12 @@ export interface Store {
   putShortcut(userId: string, tokenHash: string, hint: string): Promise<void>;
   deleteShortcut(userId: string): Promise<boolean>;
   setShortcutAccount(userId: string, accountId: string | null): Promise<boolean>;
+  // Perfil (nombre, nombre de usuario y correo: los únicos datos en claro)
+  getProfile(userId: string): Promise<{ username: string } | null>;
+  /** Cambia nombre y nombre de usuario. Devuelve false si el nombre de usuario ya lo tiene otra persona. */
+  updateProfile(userId: string, name: string, username: string): Promise<boolean>;
+  /** Borra al usuario y, en cascada, todos sus datos (cuentas, movimientos, metas, fijos, clave del Atajo, clave de cifrado). */
+  deleteUser(userId: string, username: string): Promise<void>;
 }
 
 export interface ShortcutInfo {
@@ -457,6 +463,24 @@ const actions: Record<string, Handler> = {
   },
 
   "meta.categories": async () => CATEGORIES,
+
+  // ── Cuenta de usuario ──
+  "profile.update": async (p, _v, ctx) => {
+    const name = str(p, "name", 80);
+    const username = str(p, "username", 30).toLowerCase();
+    if (!/^[a-z0-9._]{3,30}$/.test(username)) throw new ApiError(400, "El nombre de usuario debe tener de 3 a 30 letras minúsculas, números, puntos o guiones bajos");
+    if (!(await ctx.store.updateProfile(ctx.userId, name, username))) throw new ApiError(409, "Ese nombre de usuario ya está en uso");
+    return { ok: true };
+  },
+  // Elimina la cuenta y TODOS sus datos. Irreversible: hay que escribir el nombre de usuario (se comprueba aquí, no solo en la app).
+  "account.delete": async (p, _v, ctx) => {
+    const typed = str(p, "username", 30).toLowerCase();
+    const profile = await ctx.store.getProfile(ctx.userId);
+    if (!profile) throw new ApiError(404, "La cuenta no existe");
+    if (typed !== profile.username) throw new ApiError(400, "El nombre de usuario no coincide");
+    await ctx.store.deleteUser(ctx.userId, profile.username);
+    return { ok: true };
+  },
 
   // ── Atajo de iPhone ──
   "shortcut.status": async (_p, _v, ctx) => {
