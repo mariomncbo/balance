@@ -1,14 +1,36 @@
 import SwiftUI
 import Supabase
 
-/// Movimiento ya relleno (por ejemplo, el que se ha leído de un ticket). `amount` va en céntimos y positivo.
+/// Movimiento ya relleno (leído de un ticket o entendido de una frase). `amount` va en céntimos y positivo; `income` dice si entra.
 struct MovementDraft: Hashable {
     let accountId: String
     let amount: Int
     let concept: String
     let category: Category
     let date: String
+    var income = false
     var source: Source = .ticket
+
+    /// A partir de una propuesta del servidor (importe con signo: negativo = gasto).
+    init(proposal p: MovementProposalDTO, source: Source) {
+        accountId = p.accountId; amount = abs(p.amount); concept = p.concept
+        category = Category(rawValue: p.category) ?? .otros; date = p.date
+        income = p.amount > 0; self.source = source
+    }
+
+    init(accountId: String, amount: Int, concept: String, category: Category, date: String, income: Bool = false, source: Source = .ticket) {
+        self.accountId = accountId; self.amount = amount; self.concept = concept; self.category = category
+        self.date = date; self.income = income; self.source = source
+    }
+}
+
+/// Propuesta de movimiento que devuelve el servidor (`scan.receipt`, `parse.movement`).
+struct MovementProposalDTO: Decodable, Hashable {
+    let accountId: String
+    let amount: Int
+    let concept: String
+    let category: String
+    let date: String
 }
 
 struct MovementSheet: View {
@@ -34,9 +56,11 @@ struct MovementSheet: View {
     private var loading: Bool { (accounts.loading && accounts.data == nil) || (id != nil && tx.loading && tx.data == nil) }
 
     var body: some View {
-        BSheet(title: draft != nil ? "Confirma el gasto" : id == nil ? "Nuevo movimiento" : "Editar movimiento") {
-            if draft != nil, !loading {
-                Text("Esto es lo que he leído del ticket. Revísalo y corrige lo que haga falta antes de guardar.").bSub()
+        BSheet(title: draft.map { $0.income ? "Confirma el ingreso" : "Confirma el gasto" } ?? (id == nil ? "Nuevo movimiento" : "Editar movimiento")) {
+            if let d = draft, !loading {
+                Text(d.source == .ticket
+                     ? "Esto es lo que he leído del ticket. Revísalo y corrige lo que haga falta antes de guardar."
+                     : "Esto es lo que he entendido. Revísalo y corrige lo que haga falta antes de guardar.").bSub()
             }
             if loading {
                 Text("Cargando…").bSub()
@@ -47,7 +71,10 @@ struct MovementSheet: View {
             } else {
                 BTile(padding: 18, spacing: 10, alignment: .center) {
                     BSegmented(options: [(false, "Gasto"), (true, "Ingreso")], selection: $income).frame(width: 220)
-                        .onChange(of: income) { _, v in category = v ? .ingresos : .comida }
+                        .onChange(of: income) { _, v in
+                            // Al rellenar desde un borrador no se pisa la categoría detectada.
+                            if v != (category == .ingresos) { category = v ? .ingresos : .comida }
+                        }
                     BAmountField(label: income ? "Importe que entra" : "Importe que sale", text: $amount, income: income, error: errors["amount"])
                 }
                 BField(label: "Concepto", text: $concept, placeholder: "Mercadona", error: errors["concept"])
@@ -92,7 +119,7 @@ struct MovementSheet: View {
             note = t.note ?? ""; source = t.source
             date = Self.formatter.date(from: t.date) ?? Date()
         } else if let d = draft {
-            income = false
+            income = d.income
             amount = String(format: "%.2f", Double(d.amount) / 100).replacingOccurrences(of: ".", with: ",")
             concept = d.concept; category = d.category
             accountId = list.contains { $0.id == d.accountId } ? d.accountId : list.first?.id ?? ""

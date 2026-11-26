@@ -1,7 +1,7 @@
 import { assert, assertEquals, assertRejects } from "jsr:@std/assert@1.0.13";
 import { AI_UNAVAILABLE, AiError, type AiProvider, type AiRequest, DEFAULT_GEMINI_MODELS, gemini, geminiModels, withRetry } from "../_shared/ai.ts";
 import { importMasterKey } from "../_shared/crypto.ts";
-import { ApiError, type Ctx, handle, parseScan } from "../api/handler.ts";
+import { ApiError, type Ctx, handle, parseMovementAi, parseScan } from "../api/handler.ts";
 import { MemoryStore } from "./memory_store.ts";
 
 // ── Reintento: una sola vez, tras 5 s ──
@@ -192,4 +192,79 @@ Deno.test("scan.receipt: valida la imagen, exige una cuenta y que haya IA", asyn
   const noAi = setup(undefined, "sin-ia");
   await noAi.api("accounts.create", { name: "BBVA", type: "banco", openingBalance: 0 });
   assertEquals((await noAi.call({ image: IMG }).catch((x) => x) as ApiError).status, 503);
+});
+
+// ── Acción parse.movement (frase → movimiento) ──
+
+function setupParse(ai: AiProvider | undefined) {
+  const s = setup(ai, "parse-u");
+  // deno-lint-ignore no-explicit-any
+  const parse = (text: string) => handle({ action: "parse.movement", params: { text } }, s.ctx) as Promise<any>;
+  return { ...s, parse };
+}
+
+const aiMove = { is_movement: true, kind: "expense", merchant: "Gasolinera Shell", amount: 45.3, date: "2026-11-25", category: "transporte", account: "" };
+
+Deno.test("parse.movement: una frase sencilla se entiende sin IA y no gasta cupo", async () => {
+  let calls = 0;
+  const { parse, api, store } = setupParse({ generate: () => (calls++, Promise.resolve(aiMove)) });
+  const acc = await api("accounts.create", { name: "BBVA", type: "banco", openingBalance: 0 });
+  const r = await parse("12 € en Mercadona");
+  assertEquals(r.via, "rules");
+  assertEquals(r.proposal, { accountId: acc.id, amount: -1200, concept: "Mercadona", category: "comida", date: "2026-11-26" });
+  assertEquals(calls, 0, "no llama a la IA");
+  assertEquals(store.aiUses.size, 0, "no gasta cupo");
+  assertEquals((await store.list("transactions", "parse-u")).length, 0, "no guarda nada");
+});
+
+Deno.test("parse.movement: si las reglas no la entienden, la lee la IA", async () => {
+  let prompt = "";
+  const { parse, api } = setupParse({ generate: (req) => ((prompt = (req.parts[0] as { text: string }).text), Promise.resolve(aiMove)) });
+  await api("accounts.create", { name: "BBVA", type: "banco", openingBalance: 0 });
+  const r = await parse("ayer eché gasolina en el Shell, cuarenta y cinco con treinta");
+  assertEquals(r.via, "ai");
+  assertEquals([r.proposal.amount, r.proposal.concept, r.proposal.category, r.proposal.date], [-4530, "Gasolinera Shell", "transporte", "2026-11-25"]);
+  assertEquals(r.remaining, 39);
+  assert(prompt.includes("Hoy es 2026-11-26") && prompt.includes('"BBVA"'), "el modelo recibe la fecha de hoy y las cuentas");
+});
+
+Deno.test("parse.movement: ingresos, cuenta mencionada y validación", async () => {
+  const { parse, api } = setupParse({ generate: () => Promise.resolve({ ...aiMove, kind: "income", merchant: "Bizum de Ana", amount: 20, category: "ocio", account: "Efectivo" }) });
+  await api("accounts.create", { name: "BBVA", type: "banco", openingBalance: 0 });
+  const cash = await api("accounts.create", { name: "Efectivo", type: "efectivo", openingBalance: 0 });
+  const r = await parse("me ha pasado ana veinte pavos por bizum al efectivo");
+  assertEquals([r.proposal.amount, r.proposal.category, r.proposal.accountId], [2000, "ingresos", cash.id]);
+});
+
+Deno.test("parse.movement: lo que no es un movimiento → 422 sin gastar cupo", async () => {
+  const { parse, api, store } = setupParse({ generate: () => Promise.resolve({ ...aiMove, is_movement: false }) });
+  await api("accounts.create", { name: "BBVA", type: "banco", openingBalance: 0 });
+  const e = await parse("hola qué tal").catch((x) => x) as ApiError;
+  assertEquals(e.status, 422);
+  assertEquals(store.aiUses.get("parse-u:parse:2026-11-26"), 0);
+});
+
+Deno.test("parse.movement: fallos de la IA con reintento y sin gastar cupo", async () => {
+  let calls = 0;
+  const { parse, api, store } = setupParse({ generate: () => (calls++, Promise.reject(new AiError(503, true, "caído"))) });
+  await api("accounts.create", { name: "BBVA", type: "banco", openingBalance: 0 });
+  const e = await parse("eché gasolina esta mañana").catch((x) => x) as ApiError;
+  assertEquals([e.status, e.message, calls], [503, AI_UNAVAILABLE, 2]);
+  assertEquals(store.aiUses.get("parse-u:parse:2026-11-26"), 0);
+});
+
+Deno.test("parse.movement: valida la entrada y exige una cuenta", async () => {
+  const { parse, api } = setupParse({ generate: () => Promise.resolve(aiMove) });
+  assertEquals((await parse("12 € en Mercadona").catch((x) => x) as ApiError).status, 409);
+  await api("accounts.create", { name: "BBVA", type: "banco", openingBalance: 0 });
+  await assertRejects(() => parse(""), ApiError);
+  await assertRejects(() => parse("x".repeat(301)), ApiError);
+});
+
+Deno.test("parseMovementAi: un ingreso siempre es «ingresos» y un gasto nunca", () => {
+  const accounts = [{ id: "a1", name: "BBVA", type: "banco" as const, openingBalance: 0 }];
+  assertEquals(parseMovementAi({ ...aiMove, kind: "income", category: "comida" }, accounts, "2026-11-26")!.category, "ingresos");
+  assertEquals(parseMovementAi({ ...aiMove, category: "ingresos" }, accounts, "2026-11-26")!.category, "otros");
+  assertEquals(parseMovementAi({ ...aiMove, kind: "otro" }, accounts, "2026-11-26"), null);
+  assertEquals(parseMovementAi({ ...aiMove, amount: 0 }, accounts, "2026-11-26"), null);
 });

@@ -197,6 +197,26 @@ final class BalanceUITests: XCTestCase {
         waitForExpectations(timeout: 6)
     }
 
+    func testAIInputSendsWithButtonAndKeyboard() {
+        // Botón de enviar
+        var app = launch(["-fx.sheet", "ai-text"])
+        let field = app.textFields["Movimiento"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("45 € de gasolina")
+        app.buttons["Enviar"].tap()
+        XCTAssertTrue(app.staticTexts["Confirma el gasto"].waitForExistence(timeout: 5), "el botón abre el formulario relleno")
+        app.terminate()
+
+        // Tecla «enviar» del teclado
+        app = launch(["-fx.sheet", "ai-text"])
+        let field2 = app.textFields["Movimiento"]
+        XCTAssertTrue(field2.waitForExistence(timeout: 5))
+        field2.tap()
+        field2.typeText("45 € de gasolina\n")
+        XCTAssertTrue(app.staticTexts["Confirma el gasto"].waitForExistence(timeout: 5), "la tecla del teclado también envía")
+    }
+
     func testTransferInMovementsIsReadOnly() {
         let app = launch(["-fx.tab", "movements"])
         XCTAssertTrue(app.staticTexts["Mercadona"].waitForExistence(timeout: 5))

@@ -89,6 +89,8 @@ enum Fixtures {
             body = empty ? #"{"active":false,"hint":null,"createdAt":null,"lastUsedAt":null,"accountId":null}"#
                 : #"{"active":true,"hint":"3f9a","createdAt":"2026-11-20T10:00:00.000Z","lastUsedAt":"2026-11-24T09:12:00.000Z","accountId":null}"#
         case "shortcut.create": body = #"{"token":"bal_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3f9a","hint":"3f9a"}"#
+        case "parse.movement":
+            body = #"{"proposal":{"accountId":"a1","amount":-4530,"concept":"Gasolinera Shell","category":"transporte","date":"\#(today)"},"via":"ai","remaining":39}"#
         case "scan.receipt":
             body = #"{"proposal":{"accountId":"a1","amount":-2345,"concept":"Mercadona","category":"comida","date":"\#(today)"},"remaining":19}"#
         case "chat.ask":

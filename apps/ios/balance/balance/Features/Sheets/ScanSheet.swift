@@ -67,9 +67,7 @@ struct ScanSheet: View {
         defer { busy = false }
         do {
             let r: ScanReply = try await API.call("scan.receipt", ["image": .string(b64), "mime": .string("image/jpeg")])
-            let p = r.proposal
-            app.sheet = .scanned(MovementDraft(accountId: p.accountId, amount: abs(p.amount), concept: p.concept,
-                                               category: Category(rawValue: p.category) ?? .otros, date: p.date))
+            app.sheet = .scanned(MovementDraft(proposal: r.proposal, source: .ticket))
         } catch {
             self.error = API.map(error).message
         }
@@ -77,8 +75,7 @@ struct ScanSheet: View {
 }
 
 struct ScanReply: Decodable {
-    struct Proposal: Decodable { let accountId: String; let amount: Int; let concept: String; let category: String; let date: String }
-    let proposal: Proposal
+    let proposal: MovementProposalDTO
     let remaining: Int
 }
 

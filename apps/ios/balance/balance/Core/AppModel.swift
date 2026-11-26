@@ -67,6 +67,8 @@ final class AppModel {
     // Datos: sube cada vez que algo cambia, y las pantallas vuelven a pedir lo suyo.
     private(set) var version = 0
     var sheet: SheetKind?
+    /// Campo de texto de «IA» (botón «+») abierto sobre el teclado.
+    var aiInput = false
     /// Conversación del Asistente: solo en memoria, dura mientras la app está abierta.
     var chat: [ChatMessage] = []
 

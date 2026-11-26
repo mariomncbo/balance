@@ -465,6 +465,12 @@ function incomeList(d: ChatData, p: Period): ChatReply {
   return answer(`${p.label} has ingresado ${eur(total)}:\n${list.slice(0, 6).map((t) => `• ${dayLabel(t.date, d.today)}: ${t.concept} +${eur(t.amount)}`).join("\n")}`);
 }
 
+/** Propuesta de movimiento a partir de una frase, sin IA («12 € en Mercadona»). null si no la reconoce. */
+export function proposeMovement(text: string, d: ChatData): MovementProposal | null {
+  const r = movementProposal(text.trim(), d);
+  return r && r.kind === "action" && r.action === "movement" ? r.proposal : null;
+}
+
 // ───────────────────────── Clasificador ─────────────────────────
 
 const wordCount = (t: string) => t.split(" ").filter(Boolean).length;

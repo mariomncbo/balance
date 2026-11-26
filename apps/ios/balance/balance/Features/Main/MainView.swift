@@ -57,6 +57,7 @@ struct MainView: View {
             Tab("Metas", systemImage: "target", value: MainTab.goals) { stack(.goals) { GoalsView() } }
         }
         .tabBarMinimizeBehavior(.never)
+        .overlay { if app.aiInput { AIInputBar() } }
         .tint(Color.accent)
         .environment(router)
         .task { await ResponseCache.warmUp() }
@@ -73,6 +74,7 @@ struct MainView: View {
             case "goal-edit": app.sheet = .goal(id: "g2")
             case "goal-detail": app.sheet = .goalDetail(id: "g1")
             case "scan": app.sheet = .scan
+            case "ai-text": app.aiInput = true
             case "scanned": app.sheet = .scanned(MovementDraft(accountId: "a1", amount: 2345, concept: "Mercadona", category: .comida, date: Dates.todayMadrid()))
             default: break
             }
@@ -90,7 +92,7 @@ struct MainView: View {
                     ToolbarItem(placement: .topBarLeading) {
                         Menu("Añadir movimiento", systemImage: "plus") {
                             Button("A mano", systemImage: "pencil") { app.sheet = .movement(id: nil) }
-                            Button("IA · Pronto", systemImage: "sparkles") {}.disabled(true)
+                            Button("IA", systemImage: "sparkles") { app.aiInput = true }
                             Button("Escaneo", systemImage: "camera") { app.sheet = .scan }
                         }
                     }
