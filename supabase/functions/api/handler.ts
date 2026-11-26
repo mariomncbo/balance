@@ -12,6 +12,7 @@ import {
   uuidv7,
 } from "../_shared/crypto.ts";
 import { generateToken } from "../_shared/shortcut.ts";
+import { ask, askChip, CHIPS } from "../_shared/chat.ts";
 import {
   type Account,
   ACCOUNT_TYPES,
@@ -463,6 +464,17 @@ const actions: Record<string, Handler> = {
   },
 
   "meta.categories": async () => CATEGORIES,
+
+  // ── Asistente sin IA ──
+  // Responde las preguntas frecuentes con los datos del usuario. Si no la reconoce devuelve { kind: "ai" }.
+  // Ni la pregunta ni la respuesta se guardan o se registran.
+  "chat.ask": async (p, v, ctx) => {
+    const recurring = await syncRecurring(v, ctx);
+    const [accounts, txs, goals] = await Promise.all([v.all<Account>("accounts"), v.all<Transaction>("transactions"), v.all<Goal>("goals")]);
+    const data = { today: ctx.today, accounts, txs, recurring, goals };
+    if (p.chip !== undefined) return askChip(oneOf(p, "chip", CHIPS), data);
+    return ask(str(p, "text", 500), data);
+  },
 
   // ── Cuenta de usuario ──
   "profile.update": async (p, _v, ctx) => {

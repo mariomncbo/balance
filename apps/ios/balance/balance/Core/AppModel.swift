@@ -61,6 +61,8 @@ final class AppModel {
     // Datos: sube cada vez que algo cambia, y las pantallas vuelven a pedir lo suyo.
     private(set) var version = 0
     var sheet: SheetKind?
+    /// Conversación del Asistente: solo en memoria, dura mientras la app está abierta.
+    var chat: [ChatMessage] = []
 
     private var backgroundedAt: Date?
     private static let relockAfter: TimeInterval = 30
@@ -133,6 +135,7 @@ final class AppModel {
     func signOut() async {
         try? await supabase.auth.signOut()
         ResponseCache.clear()
+        chat = []
         profile = nil
         locked = pin.hasPin
     }
@@ -146,6 +149,7 @@ final class AppModel {
         OnboardingStore.clear()
         pin.clear()
         UserDefaults.standard.removeObject(forKey: "home.excludedAccounts")
+        chat = []
         profile = nil
         locked = false
     }

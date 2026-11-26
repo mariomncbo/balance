@@ -103,7 +103,7 @@ struct MainView: View {
                     case let .account(id): AccountDetailView(id: id)
                     case .report: ReportView()
                     case .settings: SettingsView()
-                    case .chat: ComingSoonView(title: "Asistente", symbol: "sparkles", text: "Pronto podrás preguntarle por tus gastos y tus metas.")
+                    case .chat: ChatView()
                     case .shortcut: ShortcutGuideView()
                     }
                 }

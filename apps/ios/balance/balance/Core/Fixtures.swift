@@ -89,6 +89,18 @@ enum Fixtures {
             body = empty ? #"{"active":false,"hint":null,"createdAt":null,"lastUsedAt":null,"accountId":null}"#
                 : #"{"active":true,"hint":"3f9a","createdAt":"2026-11-20T10:00:00.000Z","lastUsedAt":"2026-11-24T09:12:00.000Z","accountId":null}"#
         case "shortcut.create": body = #"{"token":"bal_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx3f9a","hint":"3f9a"}"#
+        case "chat.ask":
+            // Respuestas de ejemplo (sin servidor): el clasificador real está en supabase/functions/_shared/chat.ts.
+            let text = (params["text"] as? String ?? "").lowercased()
+            if params["chip"] != nil || text.contains("gast") {
+                body = #"{"kind":"answer","text":"Este mes has gastado 141,89 € (4 movimientos)."}"#
+            } else if text.contains("€") || text.contains("euro") {
+                body = #"{"kind":"action","action":"movement","text":"¿Apunto un gasto de 12 € en «Mercadona» (comida, hoy) en BBVA?","proposal":{"accountId":"a1","amount":-1200,"concept":"Mercadona","category":"comida","date":"\#(today)"}}"#
+            } else if text.contains("atajo") {
+                body = #"{"kind":"answer","text":"Para que cada pago con Wallet se apunte solo, sigue la guía del Atajo de iPhone. Te la abro.","route":"shortcut"}"#
+            } else {
+                body = #"{"kind":"ai"}"#
+            }
         case "report.month": body = #"{"summary":\#(summary),"goals":{"goals":[\#(goal)],"monthlyTotal":7700,"saved":32000,"target":55000}}"#
         default: body = "{}"
         }
