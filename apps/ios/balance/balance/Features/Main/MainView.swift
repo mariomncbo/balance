@@ -72,6 +72,8 @@ struct MainView: View {
             case "goal": app.sheet = .goal(id: nil)
             case "goal-edit": app.sheet = .goal(id: "g2")
             case "goal-detail": app.sheet = .goalDetail(id: "g1")
+            case "scan": app.sheet = .scan
+            case "scanned": app.sheet = .scanned(MovementDraft(accountId: "a1", amount: 2345, concept: "Mercadona", category: .comida, date: Dates.todayMadrid()))
             default: break
             }
         }
@@ -89,7 +91,7 @@ struct MainView: View {
                         Menu("Añadir movimiento", systemImage: "plus") {
                             Button("A mano", systemImage: "pencil") { app.sheet = .movement(id: nil) }
                             Button("IA · Pronto", systemImage: "sparkles") {}.disabled(true)
-                            Button("Escaneo · Pronto", systemImage: "camera") {}.disabled(true)
+                            Button("Escaneo", systemImage: "camera") { app.sheet = .scan }
                         }
                     }
                     ToolbarItemGroup(placement: .topBarTrailing) {

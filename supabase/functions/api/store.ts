@@ -97,6 +97,17 @@ export class SupabaseStore implements Store {
     return true;
   }
 
+  async aiConsume(userId: string, kind: string, day: string, limit: number): Promise<number> {
+    const { data, error } = await this.db.rpc("ai_consume", { p_user_id: userId, p_kind: kind, p_day: day, p_limit: limit });
+    fail(error);
+    return typeof data === "number" ? data : -1;
+  }
+
+  async aiRefund(userId: string, kind: string, day: string): Promise<void> {
+    const { error } = await this.db.rpc("ai_refund", { p_user_id: userId, p_kind: kind, p_day: day });
+    fail(error);
+  }
+
   async deleteUser(userId: string, username: string): Promise<void> {
     // El borrado del usuario de Auth arrastra en cascada el perfil y todas las tablas con user_id.
     const { error } = await this.db.auth.admin.deleteUser(userId);

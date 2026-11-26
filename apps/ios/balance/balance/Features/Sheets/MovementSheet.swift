@@ -1,8 +1,19 @@
 import SwiftUI
 import Supabase
 
+/// Movimiento ya relleno (por ejemplo, el que se ha leído de un ticket). `amount` va en céntimos y positivo.
+struct MovementDraft: Hashable {
+    let accountId: String
+    let amount: Int
+    let concept: String
+    let category: Category
+    let date: String
+    var source: Source = .ticket
+}
+
 struct MovementSheet: View {
     let id: String?
+    var draft: MovementDraft?
     @Environment(AppModel.self) private var app
     @Environment(\.dismiss) private var dismiss
     @State private var accounts = Resource<Balances>()
@@ -23,7 +34,10 @@ struct MovementSheet: View {
     private var loading: Bool { (accounts.loading && accounts.data == nil) || (id != nil && tx.loading && tx.data == nil) }
 
     var body: some View {
-        BSheet(title: id == nil ? "Nuevo movimiento" : "Editar movimiento") {
+        BSheet(title: draft != nil ? "Confirma el gasto" : id == nil ? "Nuevo movimiento" : "Editar movimiento") {
+            if draft != nil, !loading {
+                Text("Esto es lo que he leído del ticket. Revísalo y corrige lo que haga falta antes de guardar.").bSub()
+            }
             if loading {
                 Text("Cargando…").bSub()
             } else if list.isEmpty {
@@ -77,6 +91,13 @@ struct MovementSheet: View {
             concept = t.concept; category = t.category; accountId = t.accountId ?? list.first?.id ?? ""
             note = t.note ?? ""; source = t.source
             date = Self.formatter.date(from: t.date) ?? Date()
+        } else if let d = draft {
+            income = false
+            amount = String(format: "%.2f", Double(d.amount) / 100).replacingOccurrences(of: ".", with: ",")
+            concept = d.concept; category = d.category
+            accountId = list.contains { $0.id == d.accountId } ? d.accountId : list.first?.id ?? ""
+            date = Self.formatter.date(from: d.date) ?? Date()
+            source = d.source
         } else {
             accountId = list.first?.id ?? ""
         }

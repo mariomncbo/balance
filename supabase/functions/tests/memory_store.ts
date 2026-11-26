@@ -65,6 +65,19 @@ export class MemoryStore implements Store {
     this.profiles.set(u, { name, username });
     return Promise.resolve(true);
   }
+  aiUses = new Map<string, number>();
+  aiConsume(u: string, kind: string, day: string, limit: number) {
+    const k = `${u}:${kind}:${day}`;
+    const n = this.aiUses.get(k) ?? 0;
+    if (n >= limit) return Promise.resolve(-1);
+    this.aiUses.set(k, n + 1);
+    return Promise.resolve(limit - n - 1);
+  }
+  aiRefund(u: string, kind: string, day: string) {
+    const k = `${u}:${kind}:${day}`;
+    this.aiUses.set(k, Math.max(0, (this.aiUses.get(k) ?? 0) - 1));
+    return Promise.resolve();
+  }
   deleteUser(u: string, _username: string) {
     this.profiles.delete(u);
     this.keys.delete(u);

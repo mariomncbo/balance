@@ -36,6 +36,8 @@ struct SheetHost: View {
         case let .recurring(id): RecurringSheet(id: id)
         case let .goal(id): GoalSheet(id: id)
         case let .goalDetail(id): GoalDetailSheet(id: id)
+        case .scan: ScanSheet()
+        case let .scanned(draft): MovementSheet(id: nil, draft: draft)
         }
     }
 }

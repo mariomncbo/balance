@@ -24,6 +24,10 @@ enum SheetKind: Identifiable, Hashable {
     case recurring(id: String?)
     case goal(id: String?)
     case goalDetail(id: String)
+    /// Escaneo de un ticket: elegir la foto.
+    case scan
+    /// Gasto detectado en un ticket, para revisar y confirmar antes de guardarlo.
+    case scanned(MovementDraft)
 
     var id: String {
         switch self {
@@ -32,6 +36,8 @@ enum SheetKind: Identifiable, Hashable {
         case let .recurring(id): "recurring-\(id ?? "new")"
         case let .goal(id): "goal-\(id ?? "new")"
         case let .goalDetail(id): "goal-detail-\(id)"
+        case .scan: "scan"
+        case let .scanned(d): "scanned-\(d.concept)-\(d.amount)-\(d.date)"
         }
     }
 }

@@ -2,6 +2,7 @@
 // POST { action: "home" | "accounts.create" | ..., params: {...} } con la sesión del usuario.
 // Descifra en memoria, calcula y devuelve. Nunca registra datos del usuario en los logs.
 import { withSupabase } from "npm:@supabase/server@1.9.2";
+import { gemini, geminiModels } from "../_shared/ai.ts";
 import { importMasterKey } from "../_shared/crypto.ts";
 import { ApiError, handle } from "./handler.ts";
 import { SupabaseStore } from "./store.ts";
@@ -26,7 +27,9 @@ export default {
     if (!userId) return Response.json({ error: "No autorizado" }, { status: 401 });
     try {
       const body = await req.json().catch(() => null);
-      const data = await handle(body, { userId, today: today(), store: new SupabaseStore(ctx.supabaseAdmin), master: await master() });
+      const apiKey = Deno.env.get("GEMINI_API_KEY");
+      const ai = apiKey ? gemini({ apiKey, models: geminiModels(Deno.env.get("GEMINI_MODEL")) }) : undefined;
+      const data = await handle(body, { userId, today: today(), store: new SupabaseStore(ctx.supabaseAdmin), master: await master(), ai });
       return Response.json({ data });
     } catch (e) {
       if (e instanceof ApiError) return Response.json({ error: e.message }, { status: e.status });
