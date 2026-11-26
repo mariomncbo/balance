@@ -14,7 +14,9 @@ struct ShortcutGuideView: View {
     @State private var copied: String?
     @State private var confirmRegenerate = false
     @State private var confirmRevoke = false
-    @State private var showSteps = false
+    @State private var mode = Mode.ai
+
+    private enum Mode { case ai, manual }
 
     private var active: ShortcutStatus? { status.data?.active == true ? status.data : nil }
     /// La clave guardada en este iPhone solo sirve si coincide con la activa.
@@ -25,25 +27,19 @@ struct ShortcutGuideView: View {
             DetailHeader()
             VStack(alignment: .leading, spacing: 6) {
                 Text("Pagos apuntados solos").bH1().accessibilityAddTraits(.isHeader)
-                Text("Cada pago con una tarjeta de Wallet aparecerá en Balance. Son 4 pasos; el segundo es una prueba con 1 €.").bLead()
+                Text(mode == .ai ? "Cada pago con una tarjeta de Wallet aparecerá en Balance. La IA de Atajos te monta el atajo." : "Cada pago con una tarjeta de Wallet aparecerá en Balance. Son 3 pasos.").bLead()
             }
             if status.loading && status.data == nil { BLoadingTiles(rows: 3) }
             else if let e = status.error, status.data == nil { BErrorState(error: e) { app.invalidate() } }
             else {
-                step(1, "Copia tu clave personal") { keyStep }
-                step(2, "Prueba con 1 €") { shortcutStep }
-                step(3, "Conéctalo con Wallet") {
-                    VStack(alignment: .leading, spacing: 6) {
-                        bullet("En Atajos: Automatización → + → Transacción. Elige tus tarjetas y marca «Ejecutar inmediatamente».")
-                        bullet("Nueva automatización en blanco → añade la misma acción «Obtener contenido de URL» (puedes copiarla del atajo de prueba).")
-                        bullet("En el cuerpo JSON cambia los valores fijos por la variable «Entrada del atajo» (la transacción) y elige su propiedad:")
-                        bullet("amount → el importe", indent: true)
-                        bullet("merchant → el comercio", indent: true)
-                        bullet("card → la tarjeta o pase", indent: true)
-                    }
-                }
-                step(4, "Paga con Wallet") {
-                    Text("Tu próximo pago aparecerá solo en Movimientos, con el origen «Atajo».").bSubhead(.textSecondary)
+                BSegmented(options: [(Mode.ai, "IA"), (Mode.manual, "A mano")], selection: $mode)
+                if mode == .ai {
+                    step(1, "Que la IA monte el atajo") { aiStep }
+                    step(2, "Paga con Wallet") { payStep }
+                } else {
+                    step(1, "Copia tu clave personal") { keyStep }
+                    step(2, "Móntalo en Atajos") { manualStep }
+                    step(3, "Paga con Wallet") { payStep }
                 }
                 if active != nil { optionsTile }
                 if let error { BPill(text: error, style: .expense) }
@@ -106,33 +102,63 @@ struct ShortcutGuideView: View {
         }
     }
 
-    @ViewBuilder private var shortcutStep: some View {
-        Text("En Atajos, crea un atajo «Balance» con la acción «Obtener contenido de URL» y ejecútalo con ▶. Debe aparecer un gasto de 1 € «Prueba» en Movimientos (bórralo después).").bSubhead(.textSecondary)
+    @ViewBuilder private var aiStep: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            bullet("Abre Atajos en tu iPhone.")
+            bullet("Pulsa «+» para crear un nuevo atajo.")
+            bullet("Pégale el prompt y la IA lo hará por ti.")
+        }
+        if let t = usableToken {
+            HStack(spacing: 8) {
+                Button(copied == "prompt" ? "Prompt copiado" : "Copiar prompt") { copy(Self.aiPrompt(key: t), as: "prompt") }
+                    .buttonStyle(.b(.primary, small: true, block: false))
+                Button("Abrir Atajos") { if let u = URL(string: "shortcuts://") { UIApplication.shared.open(u) } }
+                    .buttonStyle(.b(.soft, small: true, block: false))
+            }
+            Text("El prompt contiene tu clave: no lo compartas.").bFootnote()
+        } else if active != nil {
+            Text("La clave no está guardada en este iPhone. Crea una nueva para poder copiar el prompt.").bFootnote()
+            Button("Nueva clave") { confirmRegenerate = true }.buttonStyle(.b(.primary, small: true, block: false)).disabled(busy)
+        } else {
+            Text("Crea una clave para que el prompt pueda apuntar tus pagos. Solo tú la tendrás.").bFootnote()
+            Button(busy ? "Creando…" : "Crear clave") { Task { await create() } }.buttonStyle(.b(.primary, small: true, block: false)).disabled(busy)
+        }
+    }
+
+    private var payStep: some View {
+        Text("Tu próximo pago aparecerá solo en Movimientos, con el origen «Atajo».").bSubhead(.textSecondary)
+    }
+
+    @ViewBuilder private var manualStep: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            bullet("En Atajos: Automatización → + → Transacción. Elige tus tarjetas y marca «Ejecutar inmediatamente».")
+            bullet("Nueva automatización en blanco → añade la acción «Obtener contenido de URL».")
+            bullet("Toca «URL» y pega la dirección (botón de abajo). Toca › para ver más opciones.")
+            bullet("Método: POST.")
+            bullet("Cabeceras → Añadir nueva cabecera. Clave: X-Balance-Key. Texto: tu clave (botón Copiar del paso 1).")
+            bullet("Cuerpo de la solicitud: JSON, con tres campos que son la variable «Entrada del atajo» (la transacción) con su propiedad:")
+            bullet("amount → el importe", indent: true)
+            bullet("merchant → el comercio", indent: true)
+            bullet("card → la tarjeta o pase", indent: true)
+            bullet("Si falla con «Clave del Atajo no válida», vuelve a copiar y pegar la clave sin espacios.")
+        }
         HStack(spacing: 8) {
             Button(copied == "url" ? "Dirección copiada" : "Copiar dirección") { copy(ShortcutKeyStore.endpoint, as: "url") }
                 .buttonStyle(.b(.soft, small: true, block: false))
             Button("Abrir Atajos") { if let u = URL(string: "shortcuts://") { UIApplication.shared.open(u) } }
                 .buttonStyle(.b(.soft, small: true, block: false))
         }
-        Button { withAnimation { showSteps.toggle() } } label: {
-            HStack(spacing: 4) { Text(showSteps ? "Ocultar cómo configurarla" : "Ver cómo configurarla"); Image(systemName: showSteps ? "chevron.up" : "chevron.down") }
-                .font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.accentText)
-        }
-        .buttonStyle(.plain)
-        if showSteps {
-            VStack(alignment: .leading, spacing: 6) {
-                bullet("Toca «URL» y pega la dirección. Toca › para ver más opciones.")
-                bullet("Método: POST.")
-                bullet("Cabeceras → Añadir nueva cabecera. Clave: X-Balance-Key. Texto: tu clave (botón Copiar del paso 1).")
-                bullet("Cuerpo de la solicitud: JSON, con dos campos de texto:")
-                bullet("amount = 1,00", indent: true)
-                bullet("merchant = Prueba", indent: true)
-                bullet("Añade «Mostrar notificación» con el «Contenido de la URL» y pulsa ▶. Debe decir «Apuntado: −1,00 € · Prueba».")
-                bullet("Si dice «Clave del Atajo no válida», vuelve a copiar y pegar la clave sin espacios.")
-            }
-            .padding(12)
-            .background(Color.bg, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        }
+    }
+
+    /// Texto para que la IA de Atajos monte el atajo (incluye la clave personal).
+    private static func aiPrompt(key: String) -> String {
+        """
+        Crea un atajo llamado «Balance» que empiece con el bloque «Al usar Cualquier tarjeta», con Automatización = activada.
+        Debajo de ese bloque, añade «Obtener contenido de URL» con la URL \(ShortcutKeyStore.endpoint), método POST.
+        - Cabecera de la solicitud: clave X-Balance-Key, valor \(key).
+        - Cuerpo de la solicitud en JSON con tres campos de texto, usando la «Entrada del atajo» (una transacción de Wallet): amount = su importe, merchant = su comercio, card = su tarjeta o pase.
+        No añadas otras acciones.
+        """
     }
 
     private func bullet(_ text: String, indent: Bool = false) -> some View {

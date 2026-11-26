@@ -400,6 +400,7 @@ struct BSegmented<Value: Hashable>: View {
                         .foregroundStyle(selection == value ? Color.onAccent : Color.textSecondary)
                         .frame(maxWidth: .infinity, minHeight: 38)
                         .background(selection == value ? Color.accent : Color.clear, in: Capsule())
+                        .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(selection == value ? .isSelected : [])
