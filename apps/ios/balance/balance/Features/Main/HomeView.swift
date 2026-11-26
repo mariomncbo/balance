@@ -6,6 +6,16 @@ struct HomeView: View {
     @Environment(AppModel.self) private var app
     @Environment(Router.self) private var router
     @State private var res = Resource<Home>()
+    /// Cuentas que NO suman en el saldo total (preferencia local de este iPhone, ids separados por comas).
+    @AppStorage("home.excludedAccounts") private var excludedRaw = ""
+    @State private var picking = false
+
+    private var excluded: Set<String> { Set(excludedRaw.split(separator: ",").map(String.init)) }
+    private func toggle(_ id: String) {
+        var e = excluded
+        if e.contains(id) { e.remove(id) } else { e.insert(id) }
+        excludedRaw = e.sorted().joined(separator: ",")
+    }
 
     var body: some View {
         BScreen(spacing: 14) {
@@ -17,6 +27,9 @@ struct HomeView: View {
         .navigationSubtitle(res.data.map { Dates.longDate($0.today).capitalizedFirst } ?? "")
         .refreshable { await res.load("home", force: true) }
         .task(id: app.version) { await res.load("home") }
+        .sheet(isPresented: $picking) {
+            if let d = res.data { totalPicker(d.balances.accounts) }
+        }
     }
 
     @ViewBuilder private func content(_ d: Home) -> some View {
@@ -33,16 +46,22 @@ struct HomeView: View {
 
     private func tiles(_ d: Home) -> some View {
         VStack(spacing: 10) {
-            NavigationLink(value: Route.report) {
+            let included = d.balances.accounts.filter { !excluded.contains($0.id) }
+            Button { picking = true } label: {
                 BTile(spacing: 8) {
                     Text("Saldo total").bEyebrow()
                     HStack {
-                        Text(Money.format(d.balances.total)).bBig()
+                        Text(Money.format(included.reduce(0) { $0 + $1.balance })).bBig()
                         Spacer()
                         BPill(text: "\(Money.format(d.month.saved, signed: true)) este mes", style: d.month.saved >= 0 ? .income : .expense)
                     }
+                    Text("Suma de \(included.count) de \(d.balances.accounts.count) cuentas · toca para elegir").bFootnote()
                 }
-            }.buttonStyle(.plain)
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Elige qué cuentas se suman al saldo")
+
+            accountsTile(d)
 
             BTilePair {
                 Button { router.tab = .movements } label: { weekTile(d) }.buttonStyle(.plain)
@@ -52,8 +71,32 @@ struct HomeView: View {
                 nextTile(d)
                 monthTile(d)
             }
-            accountsTile(d)
         }
+    }
+
+    private func totalPicker(_ accounts: [AccountBalance]) -> some View {
+        BSheet(title: "Saldo total", closeLabel: "Hecho") {
+            Text("Marca las cuentas que se suman al saldo total. Las que quites siguen en tu lista, pero no cuentan en el número.").bSub()
+            BList {
+                ForEach(Array(accounts.enumerated()), id: \.element.id) { i, a in
+                    if i > 0 { BRowDivider() }
+                    let on = !excluded.contains(a.id)
+                    Button { toggle(a.id) } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: on ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 22)).foregroundStyle(on ? Color.accent : Color.textSecondary)
+                            Text(a.name).bSubhead()
+                            Spacer()
+                            Text(Money.format(a.balance)).bSubhead(weight: .semibold).monospacedDigit()
+                        }
+                        .padding(.horizontal, Space.s4).frame(minHeight: 56).contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(on ? .isSelected : [])
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 
     private func weekTile(_ d: Home) -> some View {
