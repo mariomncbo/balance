@@ -182,6 +182,10 @@ final class BalanceUITests: XCTestCase {
         // aportar 25 € con el chip rápido
         app.buttons["+25 €"].tap()
         app.buttons["Aportar"].tap()
+        // la hoja se cierra al aportar: la reabrimos
+        XCTAssertTrue(app.staticTexts["PS5"].waitForExistence(timeout: 5))
+        app.staticTexts["PS5"].tap()
+        XCTAssertTrue(app.buttons["Cerrar"].waitForExistence(timeout: 5))
         let more = NSPredicate(format: "count == 2")
         expectation(for: more, evaluatedWith: app.buttons.matching(NSPredicate(format: "label == 'Deshacer'")))
         waitForExpectations(timeout: 6)

@@ -111,7 +111,7 @@ struct MovementsView: View {
                 if fm.expenseCount > 0 || fm.nextAfterMonth != nil { fixedHero(fm) }
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("Próximos pagos").bEyebrow().padding(.leading, 4).accessibilityAddTraits(.isHeader)
+                        Text("Pagos fijos").bEyebrow().padding(.leading, 4).accessibilityAddTraits(.isHeader)
                         Spacer()
                         Button("+ Añadir fijo") { app.sheet = .recurring(id: nil) }.bFootnote(.accentText, weight: .bold)
                     }

@@ -5,6 +5,7 @@ import Supabase
 struct GoalDetailSheet: View {
     let id: String
     @Environment(AppModel.self) private var app
+    @Environment(\.dismiss) private var dismiss
     @State private var goals = Resource<Goals>()
     @State private var accounts = Resource<Balances>()
     @State private var amount = ""
@@ -148,6 +149,7 @@ struct GoalDetailSheet: View {
             try await API.send("goals.contribute", params)
             amount = ""
             app.invalidate()
+            dismiss()
         } catch { self.error = API.map(error).message }
     }
 
