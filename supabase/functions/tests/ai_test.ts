@@ -268,3 +268,113 @@ Deno.test("parseMovementAi: un ingreso siempre es «ingresos» y un gasto nunca"
   assertEquals(parseMovementAi({ ...aiMove, kind: "otro" }, accounts, "2026-11-26"), null);
   assertEquals(parseMovementAi({ ...aiMove, amount: 0 }, accounts, "2026-11-26"), null);
 });
+
+// ── Chat con IA: filtro de tema y respuesta de Gemini ──
+
+function setupChat(ai: AiProvider | undefined) {
+  const s = setup(ai, "chat-u");
+  // deno-lint-ignore no-explicit-any
+  const chat = (text: string, history?: unknown) => handle({ action: "chat.ask", params: { text, ...(history ? { history } : {}) } }, s.ctx) as Promise<any>;
+  return { ...s, chat };
+}
+
+Deno.test("chat IA: lo que no tiene que ver con Balance no llega a la IA", async () => {
+  let calls = 0;
+  const { chat, api, store } = setupChat({ generate: () => (calls++, Promise.resolve({ off_topic: false, text: "x", action: "none" })) });
+  await api("accounts.create", { name: "BBVA", type: "banco", openingBalance: 100000 });
+  for (const q of ["¿cuál es la capital de Francia?", "cuéntame un chiste", "escríbeme un poema", "quién ganó el mundial", "traduce hello al español", "hazme los deberes de mates"]) {
+    const r = await chat(q);
+    assertEquals([r.kind, r.offTopic], ["answer", true], q);
+  }
+  assertEquals(calls, 0, "ninguna llamada a la IA");
+  assertEquals(store.aiUses.size, 0, "no gasta cupo");
+});
+
+Deno.test("chat IA: las preguntas que entienden las reglas no llegan a la IA", async () => {
+  let calls = 0;
+  const { chat, api } = setupChat({ generate: () => (calls++, Promise.resolve({ off_topic: false, text: "x", action: "none" })) });
+  await api("accounts.create", { name: "BBVA", type: "banco", openingBalance: 100000 });
+  assertEquals((await chat("cuánto dinero tengo")).kind, "answer");
+  assertEquals(calls, 0);
+});
+
+Deno.test("chat IA: una pregunta de finanzas libre la contesta la IA con los datos y la conversación", async () => {
+  let req: AiRequest | null = null;
+  const { chat, api } = setupChat({ generate: (r) => ((req = r), Promise.resolve({ off_topic: false, text: "Recorta en ocio: llevas 120 € este mes.", action: "none" })) });
+  await api("accounts.create", { name: "BBVA", type: "banco", openingBalance: 100000 });
+  const r = await chat("dame consejos para ahorrar más", [{ role: "user", text: "cuánto gasté" }, { role: "bot", text: "Este mes 120 €" }]);
+  assertEquals([r.kind, r.text, r.ai, r.remaining], ["answer", "Recorta en ocio: llevas 120 € este mes.", true, 29]);
+  const prompt = (req!.parts[0] as { text: string }).text;
+  assert(req!.system!.includes("asistente de Balance"), "lleva las normas del asistente");
+  assert(prompt.includes('"saldo_total":1000') && prompt.includes("Usuario: cuánto gasté") && prompt.includes("dame consejos para ahorrar más"));
+});
+
+Deno.test("chat IA: un seguimiento corto sin palabras de finanzas pasa el filtro si ya hay conversación", async () => {
+  let calls = 0;
+  const { chat, api } = setupChat({ generate: () => (calls++, Promise.resolve({ off_topic: false, text: "Porque…", action: "none" })) });
+  await api("accounts.create", { name: "BBVA", type: "banco", openingBalance: 0 });
+  assertEquals((await chat("¿y eso por qué?")).offTopic, true, "sin conversación previa no pasa");
+  assertEquals((await chat("¿y eso por qué?", [{ role: "user", text: "en qué gasto más" }, { role: "bot", text: "En comida" }])).ai, true);
+  assertEquals(calls, 1);
+});
+
+Deno.test("chat IA: el seguimiento de una respuesta de la IA vuelve a la IA, no a las reglas", async () => {
+  let calls = 0;
+  const { chat, api } = setupChat({ generate: () => (calls++, Promise.resolve({ off_topic: false, text: "En comida, 40 €.", action: "none" })) });
+  await api("accounts.create", { name: "BBVA", type: "banco", openingBalance: 0 });
+  const prev = [{ role: "user", text: "dame consejos" }, { role: "bot", text: "Recorta en ocio." }];
+  assertEquals((await chat("¿y en comida?", prev)).ai, undefined, "tras una regla, contestan las reglas");
+  assertEquals((await chat("¿y en comida?", [prev[0], { ...prev[1], ai: true }])).ai, true);
+  assertEquals(calls, 1);
+});
+
+Deno.test("chat IA: si el modelo dice que no es del tema, respuesta genérica", async () => {
+  const { chat, api } = setupChat({ generate: () => Promise.resolve({ off_topic: true, text: "Claro, aquí tienes la receta…", action: "none" }) });
+  await api("accounts.create", { name: "BBVA", type: "banco", openingBalance: 0 });
+  const r = await chat("cuánto cuesta hacer una paella");
+  assertEquals([r.kind, r.offTopic], ["answer", true]);
+  assert(!r.text.includes("receta"));
+});
+
+Deno.test("chat IA: las propuestas de la IA se validan y no guardan nada", async () => {
+  const { chat, api, store } = setupChat({ generate: () => Promise.resolve({
+    off_topic: false, text: "¿Creo esta meta?", action: "goal", goal_name: "Viaje a Japón", goal_target: 3000, goal_amount: 10, goal_unit: "month",
+  }) });
+  await api("accounts.create", { name: "BBVA", type: "banco", openingBalance: 0 });
+  const r = await chat("quiero ahorrar para ir a Japón el año que viene, unos 3000 euros");
+  assertEquals([r.kind, r.action], ["action", "goal"]);
+  assertEquals(r.proposal, { name: "Viaje a Japón", target: 300000, durationAmount: 10, durationUnit: "month" });
+  assertEquals((await store.list("goals", "chat-u")).length, 0);
+
+  const bad = setupChat({ generate: () => Promise.resolve({ off_topic: false, text: "Vale", action: "goal", goal_name: "X", goal_target: -5, goal_amount: 10, goal_unit: "month" }) });
+  await bad.api("accounts.create", { name: "BBVA", type: "banco", openingBalance: 0 });
+  assertEquals((await bad.chat("crea una meta absurda de ahorro")).kind, "answer", "una propuesta inválida se queda en texto");
+});
+
+Deno.test("chat IA: fallos con reintento, sin gastar cupo, y límite diario", async () => {
+  let calls = 0;
+  const { chat, api, store } = setupChat({ generate: () => (calls++, Promise.reject(new AiError(500, true, "caído"))) });
+  await api("accounts.create", { name: "BBVA", type: "banco", openingBalance: 0 });
+  const e = await chat("dame consejos para ahorrar").catch((x) => x) as ApiError;
+  assertEquals([e.status, e.message, calls], [503, AI_UNAVAILABLE, 2]);
+  assertEquals(store.aiUses.get("chat-u:chat:2026-11-26"), 0);
+
+  const lim = setupChat({ generate: () => Promise.resolve({ off_topic: false, text: "ok", action: "none" }) });
+  await lim.api("accounts.create", { name: "BBVA", type: "banco", openingBalance: 0 });
+  for (let i = 0; i < 30; i++) await lim.chat("dame consejos para ahorrar");
+  assertEquals((await lim.chat("dame consejos para ahorrar").catch((x) => x) as ApiError).status, 429);
+});
+
+Deno.test("gemini: manda las normas como instrucción de sistema y el razonamiento al mínimo", async () => {
+  let body: Record<string, unknown> = {};
+  const ai = gemini({
+    apiKey: "k",
+    models: ["gemini-3.1-flash-lite"],
+    fetch: ((_u: string, init: RequestInit) => ((body = JSON.parse(init.body as string)), reply(200, okBody({ ok: 1 })))) as unknown as typeof fetch,
+  });
+  await ai.generate({ ...REQ, system: "normas" });
+  assertEquals(body.systemInstruction, { parts: [{ text: "normas" }] });
+  const cfg = body.generationConfig as Record<string, unknown>;
+  assertEquals(cfg.thinkingConfig, { thinkingLevel: "low" });
+  assert((cfg.maxOutputTokens as number) >= 1024);
+});

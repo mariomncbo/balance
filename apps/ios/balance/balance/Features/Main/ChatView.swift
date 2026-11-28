@@ -10,6 +10,10 @@ struct ChatReply: Decodable, Hashable {
     let route: String?
     let action: String?
     let proposal: ChatProposal?
+    /// La ha contestado la IA (Gemini).
+    let ai: Bool?
+    /// No tenía que ver con Balance (respuesta genérica, sin IA).
+    let offTopic: Bool?
 }
 
 /// Propuesta de movimiento (`accountId`, `amount`, `concept`, `category`, `date`) o de meta (`name`, `target`, `durationAmount`, `durationUnit`).
@@ -37,6 +41,8 @@ struct ChatMessage: Identifiable, Hashable {
     var proposal: ChatProposal?
     var card: CardState = .pending
     var isError = false
+    /// La contestó la IA: sus seguimientos («¿y el mes pasado?») también los contesta la IA.
+    var ai = false
 }
 
 /// Preguntas sugeridas: se resuelven siempre sin IA en el servidor.
@@ -210,8 +216,12 @@ struct ChatView: View {
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, !busy else { return }
         input = ""
+        // Contexto para seguimientos («¿y el mes pasado?»): los 4 últimos mensajes. Solo viajan con la pregunta; no se guardan.
+        let history: [AnyJSON] = app.chat.filter { !$0.isError }.suffix(4).map {
+            .object(["role": .string($0.role == .user ? "user" : "bot"), "text": .string(String($0.text.prefix(600))), "ai": .bool($0.ai)])
+        }
         app.chat.append(ChatMessage(role: .user, text: text))
-        await ask(["text": .string(String(text.prefix(500)))])
+        await ask(["text": .string(String(text.prefix(500))), "history": .array(history)])
     }
 
     private func send(chip: ChatChip) async {
@@ -225,14 +235,11 @@ struct ChatView: View {
         defer { busy = false }
         do {
             let r: ChatReply = try await API.call("chat.ask", params)
-            if r.kind == "ai" {
-                // La IA todavía no está conectada.
-                app.chat.append(ChatMessage(role: .bot, text: "Esta pregunta necesita la IA, que llegará pronto. Mientras, prueba a decirlo de otra forma o pulsa «¿En qué me puedes ayudar?» para ver todo lo que sé contestar."))
-            } else {
-                app.chat.append(ChatMessage(role: .bot, text: r.text ?? "", route: r.route, action: r.action, proposal: r.proposal))
-            }
+            app.chat.append(ChatMessage(role: .bot, text: r.text ?? "Error, inténtalo más tarde.", route: r.route, action: r.action, proposal: r.proposal, ai: r.ai == true))
         } catch {
-            app.chat.append(ChatMessage(role: .bot, text: "Error, inténtalo más tarde.", isError: true))
+            // El servidor ya da el mensaje adecuado («Error, inténtalo más tarde.» o el del límite diario).
+            let e = API.map(error)
+            app.chat.append(ChatMessage(role: .bot, text: e.status == 429 || e.status == 503 ? e.message : "Error, inténtalo más tarde.", isError: true))
         }
     }
 

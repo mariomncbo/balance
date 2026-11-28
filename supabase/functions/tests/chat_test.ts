@@ -1,5 +1,5 @@
 import { assert, assertEquals, assertRejects, assertStringIncludes } from "jsr:@std/assert@1.0.13";
-import { ask, askChip, type ChatData, type ChatReply, CHIPS, detectPeriod } from "../_shared/chat.ts";
+import { ask, askChip, type ChatData, type ChatReply, CHIPS, detectPeriod, isFollowUp } from "../_shared/chat.ts";
 import type { Goal, Recurring, Transaction } from "../_shared/domain.ts";
 import { importMasterKey } from "../_shared/crypto.ts";
 import { ApiError, type Ctx, handle } from "../api/handler.ts";
@@ -158,6 +158,32 @@ Deno.test("chat: lo que necesita razonar o no es de finanzas va a la IA", () => 
   }
 });
 
+Deno.test("chat: las reglas no contestan hipótesis, temas mezclados ni frases largas", () => {
+  for (const q of [
+    "si sigo gastando así en restaurantes, ¿llegaré a la meta de la PS5?",
+    "¿y si cancelo Netflix?",
+    "¿en cuánto tiempo junto lo de la PS5?",
+    "¿cuánto gasto al mes en fijos y cuánto me queda para la meta?",
+    "¿cuánto he gastado este mes y cómo va mi saldo?",
+    "quiero saber cuánto he gastado en comida comparado con lo que gané y qué parte se me va en Mercadona",
+  ]) assertEquals(ask(q, data).kind, "ai", q);
+  // Lo sencillo se sigue contestando sin IA.
+  for (const q of ["¿cuánto gasté en Mercadona?", "gastos fijos", "¿cómo voy con la meta de la PS5?", "¿cuánto he gastado este mes?", "¿cuánto ingresé este mes?"]) {
+    assertEquals(ask(q, data).kind, "answer", q);
+  }
+});
+
+Deno.test("chat: tras una respuesta de la IA, los seguimientos siguen con la IA", () => {
+  for (const q of ["¿y el mes pasado?", "¿y en comida?", "¿por qué?", "¿cuánto en total?"]) {
+    assertEquals(ask(q, data, { afterAi: true }).kind, "ai", q);
+  }
+  assertEquals(ask("¿y en comida?", data).kind, "answer", "tras una regla, la regla sigue");
+  assertEquals(ask("gracias", data, { afterAi: true }).kind, "answer", "un gracias no es seguimiento");
+  assertEquals(ask("12 € en Mercadona", data, { afterAi: true }).kind, "action", "apuntar un gasto siempre sin IA");
+  assertEquals(isFollowUp("vale"), false);
+  assertEquals(isFollowUp("y en ocio"), true);
+});
+
 Deno.test("chat: propone un gasto con una frase sencilla, sin guardarlo", () => {
   const r = ask("12 € en Mercadona", data);
   assert(r.kind === "action" && r.action === "movement");
@@ -223,7 +249,9 @@ Deno.test("chat.ask: usa los datos del usuario y no guarda nada", async () => {
 
   assertStringIncludes((await call("chat.ask", { chip: "spent_month" })).text, "48,90 €");
   assertStringIncludes((await call("chat.ask", { text: "cuánto tengo en BBVA" })).text, "En BBVA tienes 951,10 €");
-  assertEquals((await call("chat.ask", { text: "dame un consejo" })).kind, "ai");
+  // Sin IA configurada, una pregunta libre de finanzas da «no disponible»; una ajena, la respuesta genérica.
+  await assertRejects(() => call("chat.ask", { text: "dame un consejo para ahorrar" }), ApiError);
+  assertEquals((await call("chat.ask", { text: "cuéntame un chiste" })).offTopic, true);
   const proposal = await call("chat.ask", { text: "12 € en Mercadona" });
   assertEquals([proposal.kind, proposal.proposal.accountId], ["action", bbva.id]);
 

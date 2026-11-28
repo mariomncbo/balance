@@ -102,8 +102,10 @@ enum Fixtures {
                 body = #"{"kind":"action","action":"movement","text":"¿Apunto un gasto de 12 € en «Mercadona» (comida, hoy) en BBVA?","proposal":{"accountId":"a1","amount":-1200,"concept":"Mercadona","category":"comida","date":"\#(today)"}}"#
             } else if text.contains("atajo") {
                 body = #"{"kind":"answer","text":"Para que cada pago con Wallet se apunte solo, sigue la guía del Atajo de iPhone. Te la abro.","route":"shortcut"}"#
+            } else if text.contains("chiste") || text.contains("capital") {
+                body = #"{"kind":"answer","text":"Solo puedo ayudarte con tu dinero y con Balance: gastos, ingresos, saldo, metas, pagos fijos o cómo usar la app. Pregúntame algo de eso.","offTopic":true}"#
             } else {
-                body = #"{"kind":"ai"}"#
+                body = #"{"kind":"answer","text":"(Ejemplo de respuesta de la IA) Llevas 120 € en ocio este mes: si lo bajas a 80 €, llegarías antes a tu meta PS5.","ai":true,"remaining":29}"#
             }
         case "report.month": body = #"{"summary":\#(summary),"goals":{"goals":[\#(goal)],"monthlyTotal":7700,"saved":32000,"target":55000}}"#
         default: body = "{}"

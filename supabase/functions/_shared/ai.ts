@@ -14,11 +14,21 @@ export const AI_UNAVAILABLE = "Error, inténtalo más tarde.";
 /** Una parte de la petición: texto o imagen en base64. */
 export type AiPart = { text: string } | { image: string; mime: string };
 
+/** Razonamiento al mínimo (más rápido y gasta menos cupo). Gemini 2.5 usa `thinkingBudget`; los 3 y posteriores, `thinkingLevel`. */
+export function thinkingFor(model: string): Record<string, unknown> {
+  if (/^gemini-2\./.test(model)) return { thinkingConfig: { thinkingBudget: 0 } };
+  if (/^gemini-\d/.test(model)) return { thinkingConfig: { thinkingLevel: "low" } };
+  return {};
+}
+
 export interface AiRequest {
+  /** Instrucciones de sistema (quién es el asistente y sus normas). */
+  system?: string;
   parts: AiPart[];
   /** Esquema JSON de la respuesta (formato de Gemini: tipos en mayúsculas). */
   schema: Record<string, unknown>;
   maxTokens?: number;
+  temperature?: number;
 }
 
 export interface AiProvider {
@@ -76,11 +86,14 @@ export function gemini(opts: GeminiOptions): AiProvider {
       contents: [{
         parts: req.parts.map((p) => "text" in p ? { text: p.text } : { inline_data: { mime_type: p.mime, data: p.image } }),
       }],
+      ...(req.system ? { systemInstruction: { parts: [{ text: req.system }] } } : {}),
       generationConfig: {
         responseMimeType: "application/json",
         responseSchema: req.schema,
-        maxOutputTokens: req.maxTokens ?? 400,
-        temperature: 0,
+        // En los modelos que "razonan", ese razonamiento cuenta como salida: hay margen de sobra para que no corte el JSON.
+        maxOutputTokens: Math.max(req.maxTokens ?? 1024, 1024),
+        temperature: req.temperature ?? 0,
+        ...thinkingFor(model),
       },
     };
     let res: Response;

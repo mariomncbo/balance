@@ -485,6 +485,8 @@ const VOCAB = [
   "cuando", "donde", "gastando", "gastas", "gastan", "cuenta", "cuantas", "cuanta", "ingresa", "ingresar", "pagar", "pagado",
   "ahorrar", "ahorro", "metro", "compra", "compre", "nomina", "media", "medio", "mayores", "semanas", "fijo", "fija",
   "pasado", "pasada", "pasados", "cuantos", "quedan", "queda", "llevo", "tengo", "vamos", "cobran", "cobro", "debes", "compara", "comparar", "comparado", "comparame", "compras", "comprado", "gastar", "pagos", "pague",
+  "cuesta", "cuestan", "cuesto", "costar", "cuento", "cuentos", "gusto", "gustos", "metal", "salto", "caldo", "medida",
+  "puesto", "pesado", "pasada", "ganado", "fiesta", "hacer", "ahora", "mucho", "mucha",
 ];
 
 function levenshtein1(a: string, b: string): boolean {
@@ -515,8 +517,43 @@ const INCOME = /\b(ingres\w*|cobr(e|ado|ados|o)|gane|ganado|nomina|sueldo|salari
 const QUANTITY = /\b(cuanto|cuanta|cuantos|cuantas|total|llevo|he|han|suma|importe|cifra)\b/;
 const PERIOD = new RegExp(`\\b(hoy|ayer|semana|mes|dias|${MONTHS.join("|")})\\b`);
 
+/** Hipótesis y condicionales: las reglas no saben simular escenarios. */
+const HYPOTHETICAL = /(^si\b|\by si\b|\bsi (sigo|gasto|ahorro|quiero|dejo|quito|cancelo|reduzco|bajo|subo|cobro|pago|compro|meto|aparto|tuviera|hubiera|me|no)\b|\ben cuanto tiempo\b|\bcuanto (tiempo )?tardar\w*|\b(llegare|llegaria|alcanzare|alcanzaria|bastara|bastaria|pasaria|seria|tendria|podre|me daria|me dara)\b)/;
+
+/** Temas que contesta cada regla. Si una pregunta mezcla dos, la respuesta fija se quedaría corta. */
+function topicCount(t: string, d: ChatData): number {
+  // "gastos fijos" es un tema (fijos), no dos.
+  const u = t.replace(/\b(gastos?|pagos?|ingresos?|cobros?) fijos?\b/g, "fijos");
+  const goalNames = d.goals.map((g) => normalize(g.name)).filter((n) => n.length >= 3);
+  const topics = [
+    has(u, /\b(metas?|objetivos?|hucha)\b/) || goalNames.some((n) => u.includes(n)),
+    has(u, SPEND) || has(u, INCOME),
+    has(u, /\b(fijos?|suscripcion\w*|recibos?|prestamos?|hipoteca|cuotas?)\b/),
+    has(u, /\b(saldo|patrimonio)\b/),
+  ];
+  return topics.filter(Boolean).length;
+}
+
+/** Preguntas que las reglas no deben contestar aunque encuentren una palabra clave: hipótesis, temas mezclados o frases largas. */
+function tooComplex(t: string, d: ChatData): boolean {
+  return HYPOTHETICAL.test(t) || topicCount(t, d) >= 2 || wordCount(t) > 12;
+}
+
+const ACK = /^(gracias|muchas gracias|vale|ok|okey|genial|perfecto|guay|estupendo|entendido|de acuerdo|adios|hasta luego|chao)\b/;
+
+/** ¿Es un seguimiento corto de lo anterior («¿y el mes pasado?», «¿por qué?»)? Un «gracias» o «vale» no lo es. */
+export function isFollowUp(text: string): boolean {
+  const t = normalize(text);
+  return !!t && wordCount(t) <= 10 && FOLLOW_UP.test(t) && !(ACK.test(t) && wordCount(t) <= 3);
+}
+
+export interface AskOptions {
+  /** La última respuesta la dio la IA: los seguimientos siguen con ella para no perder el hilo. */
+  afterAi?: boolean;
+}
+
 /** Responde sin IA si reconoce la frase; si no, `{ kind: "ai" }`. */
-export function ask(text: string, d: ChatData): ChatReply {
+export function ask(text: string, d: ChatData, opts: AskOptions = {}): ChatReply {
   const raw = text.trim();
   const plain = normalize(raw);
   const t = fixTypos(plain);
@@ -535,6 +572,10 @@ export function ask(text: string, d: ChatData): ChatReply {
   if (has(t, /\b(ajustes|configuracion|apariencia|modo oscuro|modo claro|tema|face id|codigo de acceso|pin|contrasena|perfil|cerrar sesion|eliminar (mi )?cuenta|borrar (mi )?cuenta)\b/)) {
     return answer("Eso se cambia en Ajustes. Te llevo.", "settings");
   }
+
+  // Seguimiento de una respuesta de la IA, o pregunta que una respuesta fija no cubre: la contesta la IA.
+  if (opts.afterAi && isFollowUp(raw)) return { kind: "ai" };
+  if (tooComplex(t, d)) return { kind: "ai" };
 
   // "¿Cuánto tengo que ahorrar al mes?" es una cuenta de las metas, no un consejo.
   if (has(t, /\b(tengo que ahorrar|debo ahorrar|hay que ahorrar|ahorrar al mes|apartar al mes|tengo que apartar)\b/)) return goalsStatus(d);
@@ -637,4 +678,95 @@ export function askChip(chip: Chip, d: ChatData): ChatReply {
     case "goals_status": return goalsStatus(d);
     case "pending_payments": return pendingPayments(d);
   }
+}
+
+// ───────────────────────── Filtro de tema (antes de la IA) ─────────────────────────
+
+/** Respuesta genérica cuando el mensaje no tiene que ver con Balance. No se llama a la IA. */
+export const OFF_TOPIC = "Solo puedo ayudarte con tu dinero y con Balance: gastos, ingresos, saldo, metas, pagos fijos o cómo usar la app. Pregúntame algo de eso.";
+
+/** Palabras de finanzas y de la app (texto normalizado, sin acentos). */
+const FINANCE = /\b(dinero|pasta|euros?|eur|gast\w*|ingres\w*|ahorr\w*|cuentas?|banco\w*|saldo\w*|metas?|objetivos?|presupuest\w*|invert\w*|inversion\w*|deudas?|hipoteca\w*|prestamos?|credito\w*|nomina\w*|sueldo\w*|salario\w*|factura\w*|recibos?|suscripci\w*|compr\w*|pag\w*|precios?|cost\w*|cuesta\w*|caro|cara|barato|barata|tarjetas?|bizum|transferencia\w*|interes\w*|inflacion|impuestos?|hacienda|irpf|iva|alquiler\w*|finanz\w*|economi\w*|mensual\w*|anual\w*|fijos?|fijas?|categorias?|movimientos?|tickets?|balance|atajo|app|aplicacion|consejos?|recort\w*|cobr\w*|debo|debes|debe|debemos|deberia\w*|cuotas?|comida|super\w*|restaurantes?|ocio|transporte|gasolina|ropa|viajes?|vacaciones|regalos?|coche|piso|luz|agua|internet|seguros?|jubilacion|pension\w*|fondos?|bolsa|acciones|cripto\w*|bitcoin|sobra\w*|falta\w*|cuanto|cuanta|cuantos|gana\w*|gane|vivir|mes|meses|semana\w*|nomina)\b/;
+
+/** Arranques típicos de una pregunta de seguimiento («¿y el mes pasado?», «¿por qué?»). */
+const FOLLOW_UP = /^(y|e|pero|entonces|vale|ok|por que|porque|como|explica\w*|que pasa|y si|mas|cuanto|cual|cuales|eso|esto|dime|sigue|continua)\b/;
+
+/**
+ * ¿Tiene que ver con Balance? Si no, el mensaje no se manda a la IA (se ahorra cupo) y se responde con `OFF_TOPIC`.
+ * Cuenta: palabras de finanzas, importes, nombres de las cuentas, metas, fijos o comercios del usuario,
+ * y preguntas cortas de seguimiento cuando ya hay conversación.
+ */
+export function isOnTopic(text: string, d: ChatData, hasHistory: boolean): boolean {
+  const t = normalize(text);
+  if (!t) return false;
+  if (FINANCE.test(t)) return true;
+  if (/\d+([.,]\d+)?\s*(€|euros?)/i.test(text)) return true;
+  const names = [
+    ...d.accounts.map((a) => a.name),
+    ...d.goals.map((g) => g.name),
+    ...d.recurring.map((r) => r.concept),
+    ...d.txs.slice(-300).map((x) => x.concept),
+  ].map(normalize).filter((n) => n.length >= 3);
+  if (names.some((n) => new RegExp(`\\b${n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(t))) return true;
+  if (hasHistory && wordCount(t) <= 10 && FOLLOW_UP.test(t)) return true;
+  return false;
+}
+
+// ───────────────────────── Resumen de datos para la IA ─────────────────────────
+
+const toEur = (cents: number) => Math.round(cents) / 100;
+
+/**
+ * Resumen compacto de los datos del usuario para la IA: totales ya calculados, no filas en bruto
+ * (gasta menos tokens y evita que el modelo tenga que sumar). Importes en euros.
+ */
+export function chatContext(d: ChatData) {
+  const cur = monthOf(d.today);
+  const prev = addMonths(cur, -1);
+  const b = balances(d.accounts, d.txs);
+  const now = monthSummary(d.txs, d.recurring, cur, d.today);
+  const before = monthSummary(d.txs, d.recurring, prev, d.today);
+  const p = monthPeriod(cur, "Este mes");
+  const merchants = new Map<string, { name: string; total: number }>();
+  for (const t of expenses(d).filter((x) => inPeriod(x, p))) {
+    const k = normalize(t.concept) || t.concept;
+    const e = merchants.get(k) ?? { name: t.concept, total: 0 };
+    e.total -= t.amount;
+    merchants.set(k, e);
+  }
+  const { out, inc } = restOfMonth(d);
+  return {
+    hoy: d.today,
+    saldo_total: toEur(b.total),
+    cuentas: b.accounts.map((a) => ({ nombre: a.name, saldo: toEur(a.balance) })),
+    este_mes: {
+      ingresos: toEur(now.income),
+      gastos: toEur(now.expense),
+      ahorro: toEur(now.saved),
+      pagos_fijos_pendientes: toEur(out),
+      ingresos_fijos_pendientes: toEur(inc),
+      por_categoria: now.byCategory.slice(0, 6).map((c) => ({ categoria: c.label, gasto: toEur(c.amount), porcentaje: c.share })),
+      comercios: [...merchants.values()].sort((a, z) => z.total - a.total).slice(0, 6).map((m) => ({ comercio: m.name, gasto: toEur(m.total) })),
+    },
+    mes_anterior: { mes: prev, ingresos: toEur(before.income), gastos: toEur(before.expense) },
+    fijos: d.recurring.filter((r) => !(r.loan && r.loan.pending <= 0)).slice(0, 15).map((r) => ({
+      concepto: r.concept,
+      tipo: r.kind === "income" ? "ingreso" : r.kind === "loan" ? "prestamo" : "gasto",
+      importe: toEur(r.amount),
+      frecuencia: freqLabel(r),
+      ...(r.loan ? { pendiente: toEur(r.loan.pending) } : {}),
+    })),
+    metas: d.goals.map((g) => goalPlan(g, d.today)).map((g) => ({
+      nombre: g.name,
+      ahorrado: toEur(g.saved),
+      objetivo: toEur(g.target),
+      fecha_limite: g.deadline,
+      apartar: toEur(g.monthly),
+      apartar_es: g.short ? "total" : "al mes",
+      con_retraso: g.behind,
+      conseguida: g.done,
+    })),
+    ultimos_movimientos: [...d.txs].sort((a, z) => z.date.localeCompare(a.date) || z.id.localeCompare(a.id)).slice(0, 8)
+      .map((t) => ({ fecha: t.date, concepto: t.concept, importe: toEur(t.amount), categoria: CATEGORIES[t.category] })),
+  };
 }
